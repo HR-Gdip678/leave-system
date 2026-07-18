@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include_('Stylesheet') ?>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+
+  <div id="loading" class="screen loading-screen">
+    <div class="spinner"></div>
+    <p>กำลังโหลด... (v3)</p>
+  </div>
+
+  <div id="app" class="app hidden">
+
+    <div class="hero">
+      <div>
+        <div class="hero-welcome">ยินดีต้อนรับกลับมา</div>
+        <div class="hero-title">ยื่นใบลา<br><span class="gold">ออนไลน์</span></div>
+        <span class="hero-badge">ระบบแจ้งหัวหน้าทันที</span>
+      </div>
+      <div class="hero-mascot">🦙</div>
+    </div>
+
+    <div class="profile-card">
+      <img id="avatar" class="avatar" src="" alt="">
+      <div>
+        <div id="userName" class="user-name">-</div>
+        <div id="userDept" class="user-dept">-</div>
+      </div>
+    </div>
+
+    <section id="balances" class="balances"></section>
+
+    <main class="content">
+
+      <div id="view-submit" class="view">
+        <div class="card">
+          <h2 class="card-title">📋 ประเภทการลา <span class="req">*</span></h2>
+          <div id="leaveTypeCards" class="type-grid"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">📅 เลือกวันที่ลา <span class="req">*</span></h2>
+          <div class="cal-head">
+            <button type="button" id="calPrev" class="cal-nav">‹</button>
+            <div id="calTitle" class="cal-title"></div>
+            <button type="button" id="calNext" class="cal-nav">›</button>
+          </div>
+          <div id="calGrid" class="cal-grid"></div>
+          <div id="calHint" class="cal-hint">แตะวันที่เริ่ม แล้วแตะวันที่สิ้นสุด</div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">🕐 ช่วงเวลา <span class="req">*</span></h2>
+          <div class="period-row">
+            <button type="button" class="period-pill selected" data-period="FULL">เต็มวัน</button>
+            <button type="button" class="period-pill" data-period="MORNING">เช้า</button>
+            <button type="button" class="period-pill" data-period="AFTERNOON">บ่าย</button>
+          </div>
+          <div id="daysPreview" class="days-preview hidden"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">📝 รายละเอียด</h2>
+          <label class="field">
+            <span>เหตุผลการลา (ไม่บังคับ)</span>
+            <textarea id="reason" rows="3" placeholder="ระบุเหตุผลการลาโดยย่อ (ถ้ามี)..."></textarea>
+          </label>
+        </div>
+
+        <button id="submitBtn" class="btn btn-primary">🦙 ส่งคำขอลา</button>
+        <div style="height:14px"></div>
+      </div>
+
+      <div id="view-history" class="view hidden">
+        <h2 class="section-title">📜 ประวัติการลาของฉัน</h2>
+        <div id="historyList" class="list"></div>
+        <div id="historyEmpty" class="empty hidden">ยังไม่มีประวัติการลา</div>
+      </div>
+
+      <div id="view-approvals" class="view hidden">
+        <h2 class="section-title">✅ รายการรออนุมัติ</h2>
+        <div id="approvalsList" class="list"></div>
+        <div id="approvalsEmpty" class="empty hidden">ไม่มีรายการรออนุมัติ</div>
+      </div>
+    </main>
+
+    <nav class="tabbar">
+      <button class="tab-btn active" data-view="submit">
+        <span class="tab-icon">📝</span><span>ยื่นใบลา</span>
+      </button>
+      <button class="tab-btn" data-view="history">
+        <span class="tab-icon">📜</span><span>ประวัติ</span>
+      </button>
+      <button id="approvalsTabBtn" class="tab-btn hidden" data-view="approvals">
+        <span class="tab-icon">✅</span><span>รออนุมัติ</span>
+        <span id="approvalsBadge" class="badge hidden">0</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="registerScreen" class="screen register-screen hidden">
+    <div class="card">
+      <div class="register-mascot">🦙</div>
+      <h2 class="card-title" style="justify-content:center">ลงทะเบียนใช้งานครั้งแรก</h2>
+      <p class="muted" style="text-align:center">กรอกข้อมูลเพื่อเริ่มใช้งานระบบลาออนไลน์</p>
+      <label class="field">
+        <span>ชื่อ-นามสกุล</span>
+        <input type="text" id="regName" required>
+      </label>
+      <label class="field">
+        <span>แผนก</span>
+        <select id="regDepartment" required></select>
+      </label>
+      <div style="height:10px"></div>
+      <button id="registerBtn" class="btn btn-primary">เริ่มใช้งาน</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script>var LIFF_ID = "<?= liffId ?>";</script>
+  <?!= include_('JavaScript') ?>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<script>
+(function () {
+  let accessToken = null;
+  let homeData = null;
+
+  // ---- submit-form state ----
+  let selectedType = null;
+  let period = 'FULL';
+  let rangeStart = null;   // 'YYYY-MM-DD'
+  let rangeEnd = null;
+  const today = new Date();
+  let viewYear = today.getFullYear();
+  let viewMonth = today.getMonth(); // 0-11
+
+  const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                       'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const DOW = ['จ','อ','พ','พฤ','ศ','ส','อา'];
+  const TYPE_EMOJI = { ANNUAL:'🏖️', SICK:'🏥', PERSONAL:'🏠', MATERNITY:'👶', ORDINATION:'🙏' };
+  const PERIOD_TEXT = { FULL:'เต็มวัน', MORNING:'ครึ่งวันเช้า', AFTERNOON:'ครึ่งวันบ่าย' };
+
+  const $ = (id) => document.getElementById(id);
+
+  function showToast(message, isError) {
+    const el = $('toast');
+    el.textContent = message;
+    el.classList.toggle('error', !!isError);
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 3000);
+  }
+
+  function gsRun(fnName, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler((err) => reject(err))
+        [fnName](...args);
+    });
+  }
+
+  // ---------- Init ----------
+
+  let currentStep = 'เริ่มต้น';
+
+  function step(msg) {
+    currentStep = msg;
+    const p = document.querySelector('#loading p');
+    if (p) p.textContent = msg;
+  }
+
+  async function init() {
+    const watchdog = setTimeout(() => {
+      renderFatalError(new Error('โหลดนานผิดปกติ — ค้างที่ขั้นตอน: ' + currentStep));
+    }, 25000);
+    try {
+      step('กำลังเชื่อมต่อ LINE...');
+      await liff.init({ liffId: LIFF_ID });
+
+      step('ตรวจสอบการล็อกอิน...');
+      if (!liff.isLoggedIn()) {
+        clearTimeout(watchdog);
+        showLoginButton();
+        return;
+      }
+
+      accessToken = liff.getAccessToken();
+      if (!accessToken) {
+        throw new Error('ไม่ได้รับ access token จาก LINE (ลองปิดแล้วเปิดลิงก์ใหม่ในแอป LINE)');
+      }
+
+      step('กำลังโหลดข้อมูลผู้ใช้...');
+      await loadHome();
+      clearTimeout(watchdog);
+    } catch (err) {
+      clearTimeout(watchdog);
+      renderFatalError(err);
+    }
+  }
+
+  // liff.login() redirects the page; inside the sandboxed iframe an automatic
+  // redirect can be blocked, so trigger it from a real user tap instead.
+  function showLoginButton() {
+    $('loading').innerHTML =
+      '<div class="register-mascot">🦙</div>' +
+      '<p style="text-align:center;padding:0 24px;">กรุณาเข้าสู่ระบบด้วยบัญชี LINE</p>' +
+      '<button id="liffLoginBtn" class="btn btn-primary" style="margin:16px auto;display:block;max-width:280px;">เข้าสู่ระบบ LINE</button>';
+    $('liffLoginBtn').onclick = () => liff.login();
+  }
+
+  function renderFatalError(err) {
+    $('loading').innerHTML =
+      '<p style="color:#E25555;text-align:center;padding:0 24px;">เกิดข้อผิดพลาด: ' +
+      (err && err.message ? err.message : err) +
+      '<br><br>กรุณาเปิดลิงก์นี้ผ่านแอป LINE</p>';
+  }
+
+  async function loadHome() {
+    homeData = await gsRun('getHomeData', accessToken);
+    $('loading').classList.add('hidden');
+
+    if (!homeData.registered) {
+      showRegisterScreen();
+      return;
+    }
+    renderApp();
+  }
+
+  // ---------- Registration ----------
+
+  async function showRegisterScreen() {
+    $('registerScreen').classList.remove('hidden');
+    $('regName').value = homeData.profile.displayName || '';
+    const deptSelect = $('regDepartment');
+    deptSelect.innerHTML = homeData.departments.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+
+    $('registerBtn').onclick = async () => {
+      const name = $('regName').value.trim();
+      const department = deptSelect.value;
+      if (!name || !department) { showToast('กรุณากรอกข้อมูลให้ครบถ้วน', true); return; }
+      $('registerBtn').disabled = true;
+      $('registerBtn').textContent = 'กำลังบันทึก...';
+      try {
+        homeData = await gsRun('registerEmployee', accessToken, name, department);
+        $('registerScreen').classList.add('hidden');
+        renderApp();
+      } catch (err) {
+        showToast(err.message || String(err), true);
+        $('registerBtn').disabled = false;
+        $('registerBtn').textContent = 'เริ่มใช้งาน';
+      }
+    };
+  }
+
+  // ---------- Main app shell ----------
+
+  function renderApp() {
+    $('app').classList.remove('hidden');
+    $('userName').textContent = homeData.profile.displayName;
+    $('userDept').textContent = homeData.profile.department || '';
+    $('avatar').src = homeData.profile.pictureUrl || '';
+
+    renderBalances();
+    renderTypeCards();
+    renderCalendar();
+    setupCalendarNav();
+    setupPeriodPills();
+    setupTabs();
+    setupSubmit();
+
+    if (homeData.isApprover) {
+      $('approvalsTabBtn').classList.remove('hidden');
+      refreshApprovals();
+    }
+
+    refreshHistory();
+  }
+
+  function emojiOf(key) { return TYPE_EMOJI[key] || '📋'; }
+
+  function renderBalances() {
+    $('balances').innerHTML = homeData.balances.map(b => {
+      const t = homeData.leaveTypes.find(t => t.key === b.key);
+      const max = t && Number(t.defaultDays) ? Number(t.defaultDays) : b.remaining || 1;
+      const pct = Math.max(0, Math.min(100, (b.remaining / max) * 100));
+      return `
+      <div class="balance-card">
+        <div class="bc-emoji">${emojiOf(b.key)}</div>
+        <div class="bc-value" style="color:${b.color}">${b.remaining}</div>
+        <div class="bc-name">${escapeHtml(b.name)}</div>
+        <div class="bc-bar"><div style="width:${pct}%;background:${b.color}"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- Leave type cards ----------
+
+  function renderTypeCards() {
+    $('leaveTypeCards').innerHTML = homeData.leaveTypes.map(t => {
+      const bal = homeData.balances.find(b => b.key === t.key);
+      const remain = bal ? bal.remaining : '';
+      return `
+      <button type="button" class="type-card" data-key="${escapeHtml(t.key)}">
+        <span class="t-emoji">${emojiOf(t.key)}</span>
+        <span class="t-name">${escapeHtml(t.name)}</span>
+        <div class="t-remain">เหลือ ${remain} วัน</div>
+      </button>`;
+    }).join('');
+
+    document.querySelectorAll('.type-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedType = card.dataset.key;
+      });
+    });
+  }
+
+  // ---------- Calendar ----------
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function iso(y, m, d) { return y + '-' + pad2(m + 1) + '-' + pad2(d); }
+  function isoToday() { return iso(today.getFullYear(), today.getMonth(), today.getDate()); }
+
+  function setupCalendarNav() {
+    $('calPrev').onclick = () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+    };
+    $('calNext').onclick = () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
+    };
+  }
+
+  function renderCalendar() {
+    $('calTitle').textContent = THAI_MONTHS[viewMonth] + ' ' + (viewYear + 543);
+
+    const first = new Date(viewYear, viewMonth, 1);
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    // Monday-first offset: JS getDay() 0=Sun..6=Sat
+    const offset = (first.getDay() + 6) % 7;
+    const todayIso = isoToday();
+
+    let html = DOW.map((d, i) =>
+      `<div class="cal-dow${i >= 5 ? ' weekend' : ''}">${d}</div>`).join('');
+
+    for (let i = 0; i < offset; i++) html += '<button type="button" class="cal-day other">.</button>';
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateIso = iso(viewYear, viewMonth, d);
+      const dow = new Date(viewYear, viewMonth, d).getDay();
+      const cls = ['cal-day'];
+      if (dow === 0 || dow === 6) cls.push('weekend');
+      if (dateIso < todayIso) cls.push('past');
+      if (dateIso === todayIso) cls.push('today');
+      if (rangeStart && dateIso === rangeStart) cls.push('range-start');
+      if (rangeEnd && dateIso === rangeEnd) cls.push('range-end');
+      if (rangeStart && rangeEnd && dateIso > rangeStart && dateIso < rangeEnd) cls.push('in-range');
+      html += `<button type="button" class="${cls.join(' ')}" data-date="${dateIso}">${d}</button>`;
+    }
+
+    $('calGrid').innerHTML = html;
+
+    document.querySelectorAll('.cal-day[data-date]').forEach(btn => {
+      btn.addEventListener('click', () => onDayTap(btn.dataset.date));
+    });
+  }
+
+  function onDayTap(dateIso) {
+    if (period !== 'FULL') {
+      // half-day: single date only
+      rangeStart = dateIso;
+      rangeEnd = dateIso;
+    } else if (!rangeStart || (rangeStart && rangeEnd && rangeStart !== rangeEnd)) {
+      rangeStart = dateIso;
+      rangeEnd = null;
+    } else if (rangeStart && !rangeEnd) {
+      if (dateIso < rangeStart) { rangeStart = dateIso; }
+      else { rangeEnd = dateIso; }
+    } else { // start === end (single selected) -> extend or restart
+      if (dateIso >= rangeStart) rangeEnd = dateIso;
+      else { rangeStart = dateIso; rangeEnd = null; }
+    }
+    renderCalendar();
+    updatePreview();
+  }
+
+  // ---------- Period pills ----------
+
+  function setupPeriodPills() {
+    document.querySelectorAll('.period-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.period-pill').forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        period = pill.dataset.period;
+        if (period !== 'FULL' && rangeStart) {
+          rangeEnd = rangeStart; // half-day = single date
+          renderCalendar();
+        }
+        $('calHint').textContent = period === 'FULL'
+          ? 'แตะวันที่เริ่ม แล้วแตะวันที่สิ้นสุด'
+          : 'ลาครึ่งวันเลือกได้ 1 วัน — แตะวันที่ต้องการ';
+        updatePreview();
+      });
+    });
+  }
+
+  function countBusinessDays(startStr, endStr) {
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    let count = 0;
+    const d = new Date(start);
+    while (d <= end) {
+      const day = d.getDay();
+      if (day !== 0 && day !== 6) count++;
+      d.setDate(d.getDate() + 1);
+    }
+    return count;
+  }
+
+  function updatePreview() {
+    const el = $('daysPreview');
+    if (!rangeStart) { el.classList.add('hidden'); return; }
+    const end = rangeEnd || rangeStart;
+    el.classList.remove('hidden');
+    if (period !== 'FULL') {
+      el.textContent = 'รวม 0.5 วัน (' + PERIOD_TEXT[period] + ')';
+    } else {
+      const days = countBusinessDays(rangeStart, end);
+      el.textContent = days > 0
+        ? 'รวม ' + days + ' วันทำการ'
+        : 'ช่วงที่เลือกไม่มีวันทำการ (เสาร์-อาทิตย์)';
+    }
+  }
+
+  // ---------- Submit ----------
+
+  function setupSubmit() {
+    $('submitBtn').addEventListener('click', async () => {
+      if (!selectedType) { showToast('กรุณาเลือกประเภทการลา', true); return; }
+      if (!rangeStart) { showToast('กรุณาเลือกวันที่ลา', true); return; }
+      const endDate = rangeEnd || rangeStart;
+      if (period === 'FULL' && countBusinessDays(rangeStart, endDate) <= 0) {
+        showToast('ช่วงที่เลือกไม่มีวันทำการ', true); return;
+      }
+
+      const btn = $('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'กำลังส่ง...';
+      try {
+        await gsRun('submitLeaveRequest', accessToken, {
+          leaveType: selectedType,
+          startDate: rangeStart,
+          endDate: endDate,
+          timePeriod: period,
+          reason: $('reason').value.trim()
+        });
+        showToast('ส่งคำขอลาเรียบร้อยแล้ว 🦙');
+        // reset form
+        rangeStart = rangeEnd = null;
+        selectedType = null;
+        document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+        $('reason').value = '';
+        $('daysPreview').classList.add('hidden');
+        renderCalendar();
+        refreshHistory();
+      } catch (err) {
+        showToast(err.message || String(err), true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🦙 ส่งคำขอลา';
+      }
+    });
+  }
+
+  // ---------- Tabs ----------
+
+  function setupTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+        btn.classList.add('active');
+        $('view-' + btn.dataset.view).classList.remove('hidden');
+        if (btn.dataset.view === 'history') refreshHistory();
+        if (btn.dataset.view === 'approvals') refreshApprovals();
+      });
+    });
+  }
+
+  // ---------- History ----------
+
+  function periodText(p) { return PERIOD_TEXT[p] || 'เต็มวัน'; }
+
+  async function refreshHistory() {
+    const list = $('historyList');
+    list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+    try {
+      const items = await gsRun('getMyLeaves', accessToken);
+      $('historyEmpty').classList.toggle('hidden', items.length > 0);
+      list.innerHTML = items.map(renderHistoryCard).join('');
+    } catch (err) {
+      list.innerHTML = '';
+      showToast(err.message || String(err), true);
+    }
+  }
+
+  function renderHistoryCard(r) {
+    const typeName = typeNameOf(r.leaveType);
+    return `
+      <div class="req-card">
+        <div class="req-top">
+          <div>
+            <div class="req-type">${emojiOf(r.leaveType)} ${escapeHtml(typeName)}</div>
+            <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r.timePeriod)}</div>
+          </div>
+          <span class="badge-status ${r.status}">${statusLabel(r.status)}</span>
+        </div>
+        ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
+        ${r.approverComment ? `<div class="req-reason muted">หมายเหตุผู้อนุมัติ: ${escapeHtml(r.approverComment)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // ---------- Approvals ----------
+
+  async function refreshApprovals() {
+    const list = $('approvalsList');
+    list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+    try {
+      const items = await gsRun('getPendingApprovals', accessToken);
+      $('approvalsEmpty').classList.toggle('hidden', items.length > 0);
+      updateApprovalsBadge(items.length);
+      list.innerHTML = items.map(renderApprovalCard).join('');
+      items.forEach(bindApprovalButtons);
+    } catch (err) {
+      list.innerHTML = '';
+      showToast(err.message || String(err), true);
+    }
+  }
+
+  function updateApprovalsBadge(count) {
+    const badge = $('approvalsBadge');
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+  }
+
+  function renderApprovalCard(r) {
+    const typeName = typeNameOf(r.leaveType);
+    return `
+      <div class="req-card" data-id="${r.requestId}">
+        <div class="req-top">
+          <div>
+            <div class="req-type">${emojiOf(r.leaveType)} ${escapeHtml(typeName)}</div>
+            <div class="req-name">${escapeHtml(r.name)} · ${escapeHtml(r.department)}</div>
+            <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r.timePeriod)}</div>
+          </div>
+        </div>
+        ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
+        <div class="btn-row">
+          <button class="btn btn-approve approve-btn">✅ อนุมัติ</button>
+          <button class="btn btn-reject-outline reject-btn">❌ ไม่อนุมัติ</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindApprovalButtons(r) {
+    const card = document.querySelector('.req-card[data-id="' + r.requestId + '"]');
+    if (!card) return;
+    card.querySelector('.approve-btn').addEventListener('click', () => decide(r.requestId, 'APPROVED'));
+    card.querySelector('.reject-btn').addEventListener('click', () => decide(r.requestId, 'REJECTED'));
+  }
+
+  async function decide(requestId, decision) {
+    const label = decision === 'APPROVED' ? 'อนุมัติ' : 'ไม่อนุมัติ';
+    if (!confirm('ยืนยันการ' + label + 'คำขอลานี้?')) return;
+    try {
+      await gsRun('decideLeaveRequest', accessToken, requestId, decision, '');
+      showToast(label + 'เรียบร้อยแล้ว');
+      refreshApprovals();
+    } catch (err) {
+      showToast(err.message || String(err), true);
+    }
+  }
+
+  // ---------- Helpers ----------
+
+  function typeNameOf(key) {
+    const t = homeData.leaveTypes.find(t => t.key === key);
+    return t ? t.name : key;
+  }
+
+  function statusLabel(status) {
+    return { PENDING: 'รออนุมัติ', APPROVED: 'อนุมัติแล้ว', REJECTED: 'ไม่อนุมัติ' }[status] || status;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  init();
+})();
+</script>

@@ -557,7 +557,14 @@ var LIFF_ID = '2010757225-fGRiop3v';
       body: JSON.stringify(Object.assign({ action, accessToken }, params || {}))
     });
     if (!res.ok) throw new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (' + res.status + ')');
-    const json = await res.json();
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      // Old backend replies with plain text (e.g. "unauthorized") instead of JSON
+      throw new Error('backend ยังเป็นโค้ดเวอร์ชันเก่า — กรุณาวางไฟล์ .gs ใหม่ใน Apps Script แล้ว Deploy แบบ New version (เซิร์ฟเวอร์ตอบ: "' + text.slice(0, 60) + '")');
+    }
     if (!json.ok) throw new Error(json.error || 'เกิดข้อผิดพลาด');
     return json.data;
   }
@@ -602,9 +609,11 @@ var LIFF_ID = '2010757225-fGRiop3v';
   }
 
   function renderFatalError(err) {
+    const detail = (err && err.message ? err.message : String(err)) +
+      (err && err.name && err.name !== 'Error' ? ' [' + err.name + ']' : '');
     $('loading').innerHTML =
-      '<p style="color:#E25555;text-align:center;padding:0 24px;">เกิดข้อผิดพลาด: ' +
-      (err && err.message ? err.message : err) +
+      '<p style="color:#E25555;text-align:center;padding:0 24px;">เกิดข้อผิดพลาด: ' + detail +
+      '<br><br><span style="color:#8A94A6;font-size:13px;">ขั้นตอนที่ค้าง: ' + currentStep + '</span>' +
       '<br><br>กรุณาเปิดลิงก์นี้ผ่านแอป LINE</p>';
   }
 

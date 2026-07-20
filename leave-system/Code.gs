@@ -43,7 +43,7 @@ function routeApi_(req) {
   const t = req.accessToken;
   switch (req.action) {
     case 'getHomeData': return getHomeData(t);
-    case 'registerEmployee': return registerEmployee(t, req.name, req.department);
+    case 'registerEmployee': return registerEmployee(t, req.name, req.department, req.employeeCode);
     case 'submitLeaveRequest': return submitLeaveRequest(t, req.payload);
     case 'getMyLeaves': return getMyLeaves(t);
     case 'getPendingApprovals': return getPendingApprovals(t);
@@ -176,10 +176,11 @@ function getDepartmentList() {
   return getDepartments_().map(d => d.Department).filter(String);
 }
 
-function registerEmployee(accessToken, name, department) {
+function registerEmployee(accessToken, name, department, employeeCode) {
   const profile = lineProfileFromAccessToken_(accessToken);
   const displayName = (name || '').trim() || profile.displayName;
-  upsertEmployee_(Object.assign({}, profile, { displayName }), department);
+  if (!employeeCode || !String(employeeCode).trim()) throw new Error('กรุณากรอกรหัสพนักงาน');
+  upsertEmployee_(Object.assign({}, profile, { displayName }), department, String(employeeCode).trim());
   return getHomeData(accessToken);
 }
 
@@ -203,7 +204,10 @@ function getHomeData(accessToken) {
 
   return {
     registered: true,
-    profile: { displayName: employee.Name, pictureUrl: employee.PictureUrl, department: employee.Department },
+    profile: {
+      displayName: employee.Name, pictureUrl: employee.PictureUrl,
+      department: employee.Department, employeeCode: employee.EmployeeCode || ''
+    },
     isApprover: isApprover_(profile.userId),
     isHr: isHr_(profile.userId),
     balances,

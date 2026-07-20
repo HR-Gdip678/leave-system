@@ -13,7 +13,7 @@ const EMPLOYEES_HEADERS = [
   'LineUserId', 'Name', 'Department', 'PictureUrl',
   'AnnualLeaveBalance', 'SickLeaveBalance', 'PersonalLeaveBalance',
   'MaternityLeaveBalance', 'OrdinationLeaveBalance', 'RegisteredAt',
-  'SpecialLeaveBalance'
+  'SpecialLeaveBalance', 'EmployeeCode'
 ];
 
 const DEPARTMENTS_HEADERS = ['Department', 'ApproverLineUserId', 'ApproverName'];

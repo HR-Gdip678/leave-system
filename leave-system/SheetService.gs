@@ -57,7 +57,7 @@ function getEmployee_(lineUserId) {
   return rows.find(r => r.LineUserId === lineUserId) || null;
 }
 
-function upsertEmployee_(profile, department) {
+function upsertEmployee_(profile, department, employeeCode) {
   const sheet = getSheet_(SHEET_EMPLOYEES);
   const rowIndex = findRowIndexByValue_(sheet, 'LineUserId', profile.userId);
   if (rowIndex > 0) return getEmployee_(profile.userId);
@@ -73,6 +73,7 @@ function upsertEmployee_(profile, department) {
     if (h === 'Department') return department;
     if (h === 'PictureUrl') return profile.pictureUrl || '';
     if (h === 'RegisteredAt') return new Date();
+    if (h === 'EmployeeCode') return employeeCode || '';
     if (h in defaults) return defaults[h];
     return '';
   });

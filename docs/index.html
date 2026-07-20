@@ -525,6 +525,10 @@
       <h2 class="card-title" style="justify-content:center">ลงทะเบียนใช้งานครั้งแรก</h2>
       <p class="muted" style="text-align:center">กรอกข้อมูลเพื่อเริ่มใช้งานระบบลาออนไลน์</p>
       <label class="field">
+        <span>รหัสพนักงาน</span>
+        <input type="text" id="regEmployeeCode" required placeholder="เช่น EMP001">
+      </label>
+      <label class="field">
         <span>ชื่อ-นามสกุล</span>
         <input type="text" id="regName" required>
       </label>
@@ -692,13 +696,14 @@ var LIFF_ID = '2010757225-fGRiop3v';
     deptSelect.innerHTML = homeData.departments.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
 
     $('registerBtn').onclick = async () => {
+      const employeeCode = $('regEmployeeCode').value.trim();
       const name = $('regName').value.trim();
       const department = deptSelect.value;
-      if (!name || !department) { showToast('กรุณากรอกข้อมูลให้ครบถ้วน', true); return; }
+      if (!employeeCode || !name || !department) { showToast('กรุณากรอกข้อมูลให้ครบถ้วน', true); return; }
       $('registerBtn').disabled = true;
       $('registerBtn').textContent = 'กำลังบันทึก...';
       try {
-        homeData = await api('registerEmployee', { name, department });
+        homeData = await api('registerEmployee', { name, department, employeeCode });
         saveHomeCache();
         $('registerScreen').classList.add('hidden');
         renderApp();
@@ -729,7 +734,8 @@ var LIFF_ID = '2010757225-fGRiop3v';
     $('loading').classList.add('hidden');
     $('app').classList.remove('hidden');
     $('userName').textContent = homeData.profile.displayName;
-    $('userDept').textContent = homeData.profile.department || '';
+    $('userDept').textContent = [homeData.profile.department, homeData.profile.employeeCode]
+      .filter(Boolean).join(' · ');
     $('avatar').src = homeData.profile.pictureUrl || '';
 
     renderBalances();

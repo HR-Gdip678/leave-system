@@ -8,6 +8,23 @@ function getSheet_(name) {
   return sheet;
 }
 
+// อ่านชีตแบบมี cache — ใช้กับข้อมูลที่นานๆ เปลี่ยนที (ประเภทลา/แผนก/HR)
+// ช่วยลดเวลาโหลด เพราะไม่ต้องเปิดสเปรดชีตใหม่ทุกครั้งที่มีคนเปิดแอป
+function cachedSheetObjects_(sheetName, seconds) {
+  const cache = CacheService.getScriptCache();
+  const key = 'sheet_' + sheetName;
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  const rows = sheetToObjects_(getSheet_(sheetName));
+  cache.put(key, JSON.stringify(rows), seconds);
+  return rows;
+}
+
+function clearSheetCache_() {
+  CacheService.getScriptCache().removeAll(
+    [SHEET_LEAVE_TYPES, SHEET_DEPARTMENTS, SHEET_HR].map(n => 'sheet_' + n));
+}
+
 function sheetToObjects_(sheet) {
   const values = sheet.getDataRange().getValues();
   if (values.length < 2) return [];
@@ -78,7 +95,7 @@ function adjustEmployeeBalance_(lineUserId, balanceField, delta) {
 // ---------- Departments ----------
 
 function getDepartments_() {
-  return sheetToObjects_(getSheet_(SHEET_DEPARTMENTS));
+  return cachedSheetObjects_(SHEET_DEPARTMENTS, 120);
 }
 
 function getApproverForDepartment_(department) {
@@ -100,7 +117,7 @@ function getDepartmentsManagedBy_(lineUserId) {
 // ---------- HR (ผู้อนุมัติขั้นที่ 2) ----------
 
 function getHrApprovers_() {
-  return sheetToObjects_(getSheet_(SHEET_HR))
+  return cachedSheetObjects_(SHEET_HR, 120)
     .filter(r => r.LineUserId && String(r.LineUserId).indexOf('(') !== 0); // ข้ามแถวตัวอย่าง
 }
 
@@ -111,7 +128,7 @@ function isHr_(lineUserId) {
 // ---------- Leave Types ----------
 
 function getLeaveTypes_() {
-  const rows = sheetToObjects_(getSheet_(SHEET_LEAVE_TYPES));
+  const rows = cachedSheetObjects_(SHEET_LEAVE_TYPES, 300);
   return rows.map(r => ({
     key: r.TypeKey,
     name: r.TypeName,

@@ -49,6 +49,8 @@ function setupSpreadsheet() {
     ss.deleteSheet(sheet1);
   }
 
+  ensureKeepWarmTrigger_();
+  clearSheetCache_();
   SpreadsheetApp.flush();
   // getUi() is only available when run from the Sheet menu; running from the
   // Apps Script editor has no UI, so skip the alert silently there.
@@ -103,6 +105,21 @@ function createSheetIfMissing_(ss, name, headers) {
     sheet.autoResizeColumns(1, headers.length);
   }
   return sheet;
+}
+
+// รันเบาๆ ทุก 5 นาที เพื่อให้สคริปต์อุ่นอยู่เสมอ ลดอาการโหลดช้าครั้งแรก (cold start)
+// และถือโอกาสเติม cache ชีตหลักไว้ล่วงหน้า
+function keepWarm_() {
+  getLeaveTypes_();
+  getDepartments_();
+}
+
+function ensureKeepWarmTrigger_() {
+  const exists = ScriptApp.getProjectTriggers()
+    .some(t => t.getHandlerFunction() === 'keepWarm_');
+  if (!exists) {
+    ScriptApp.newTrigger('keepWarm_').timeBased().everyMinutes(5).create();
+  }
 }
 
 /** Optional: adds a menu so non-developers can (re-)run setup from the Sheet UI. */

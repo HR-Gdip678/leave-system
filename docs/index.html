@@ -606,9 +606,18 @@ var LIFF_ID = '2010757225-fGRiop3v';
     if (p) p.textContent = msg;
   }
 
+  function softFail(err) {
+    // ถ้าหน้าจอจาก cache แสดงอยู่แล้ว อย่าทับด้วย error เต็มจอ — แจ้งเบาๆ พอ
+    if (!$('app').classList.contains('hidden')) {
+      showToast('ซิงค์ข้อมูลไม่สำเร็จ: ' + (err.message || err), true);
+    } else {
+      renderFatalError(err);
+    }
+  }
+
   async function init() {
     const watchdog = setTimeout(() => {
-      renderFatalError(new Error('โหลดนานผิดปกติ — ค้างที่ขั้นตอน: ' + currentStep));
+      softFail(new Error('โหลดนานผิดปกติ — ค้างที่ขั้นตอน: ' + currentStep));
     }, 25000);
     try {
       step('กำลังเชื่อมต่อ LINE...');
@@ -631,7 +640,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
       clearTimeout(watchdog);
     } catch (err) {
       clearTimeout(watchdog);
-      renderFatalError(err);
+      softFail(err);
     }
   }
 
@@ -644,14 +653,33 @@ var LIFF_ID = '2010757225-fGRiop3v';
       '<br><br>กรุณาเปิดลิงก์นี้ผ่านแอป LINE</p>';
   }
 
+  const HOME_CACHE_KEY = 'leaveHomeCache';
+
+  function saveHomeCache() {
+    try { localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(homeData)); } catch (e) {}
+  }
+
+  // เปิดแอปปุ๊บ โชว์ข้อมูลรอบก่อนทันที (ถ้ามี) แล้วค่อยซิงค์ของจริงทับเบื้องหลัง
+  function renderFromCache() {
+    try {
+      const cached = JSON.parse(localStorage.getItem(HOME_CACHE_KEY) || 'null');
+      if (cached && cached.registered) {
+        homeData = cached;
+        renderApp();
+      }
+    } catch (e) {}
+  }
+
   async function loadHome() {
     homeData = await api('getHomeData');
     $('loading').classList.add('hidden');
 
     if (!homeData.registered) {
+      $('app').classList.add('hidden');
       showRegisterScreen();
       return;
     }
+    saveHomeCache();
     renderApp();
   }
 
@@ -671,6 +699,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
       $('registerBtn').textContent = 'กำลังบันทึก...';
       try {
         homeData = await api('registerEmployee', { name, department });
+        saveHomeCache();
         $('registerScreen').classList.add('hidden');
         renderApp();
       } catch (err) {
@@ -683,7 +712,21 @@ var LIFF_ID = '2010757225-fGRiop3v';
 
   // ---------- Main app shell ----------
 
+  // ผูก event ครั้งเดียว — renderApp ถูกเรียกซ้ำได้ (เช่น โชว์จาก cache ก่อน แล้วซิงค์ทับ)
+  let uiBound = false;
+  function bindOnce() {
+    if (uiBound) return;
+    uiBound = true;
+    renderCalendar();
+    setupCalendarNav();
+    setupPeriodPills();
+    setupTabs();
+    setupSubmit();
+  }
+
   function renderApp() {
+    bindOnce();
+    $('loading').classList.add('hidden');
     $('app').classList.remove('hidden');
     $('userName').textContent = homeData.profile.displayName;
     $('userDept').textContent = homeData.profile.department || '';
@@ -691,16 +734,10 @@ var LIFF_ID = '2010757225-fGRiop3v';
 
     renderBalances();
     renderTypeCards();
-    renderCalendar();
-    setupCalendarNav();
-    setupPeriodPills();
-    setupTabs();
-    setupSubmit();
 
-    if (homeData.isApprover || homeData.isHr) {
-      $('approvalsTabBtn').classList.remove('hidden');
-      refreshApprovals();
-    }
+    const showApprovals = homeData.isApprover || homeData.isHr;
+    $('approvalsTabBtn').classList.toggle('hidden', !showApprovals);
+    if (showApprovals) refreshApprovals();
 
     refreshHistory();
   }
@@ -969,6 +1006,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
   async function refreshHistory() {
     const list = $('historyList');
     list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+    if (!accessToken) return; // โชว์จาก cache อยู่ — รอซิงค์เสร็จค่อยโหลดรายการจริง
     try {
       const items = await api('getMyLeaves');
       $('historyEmpty').classList.toggle('hidden', items.length > 0);
@@ -1016,6 +1054,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
   async function refreshApprovals() {
     const list = $('approvalsList');
     list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+    if (!accessToken) return; // โชว์จาก cache อยู่ — รอซิงค์เสร็จค่อยโหลดรายการจริง
     try {
       const items = await api('getPendingApprovals');
       $('approvalsEmpty').classList.toggle('hidden', items.length > 0);
@@ -1101,6 +1140,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
     }[c]));
   }
 
+  renderFromCache();
   init();
 })();
 </script>

@@ -3,6 +3,14 @@
  */
 
 function lineProfileFromAccessToken_(accessToken) {
+  // cache ผลตรวจ token ไว้ 10 นาที — token เดิมไม่ต้องยิงถาม LINE ซ้ำทุก request
+  // (token ของ LIFF มีอายุ ~12 ชม. การ cache ช่วงสั้นจึงปลอดภัย)
+  const cache = CacheService.getScriptCache();
+  const key = 'prof_' + Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, accessToken || '')).slice(0, 40);
+  const hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+
   const res = UrlFetchApp.fetch('https://api.line.me/v2/profile', {
     headers: { Authorization: 'Bearer ' + accessToken },
     muteHttpExceptions: true
@@ -10,7 +18,9 @@ function lineProfileFromAccessToken_(accessToken) {
   if (res.getResponseCode() !== 200) {
     throw new Error('LINE access token ไม่ถูกต้อง หรือหมดอายุ กรุณาเปิดแอปใหม่อีกครั้ง');
   }
-  return JSON.parse(res.getContentText()); // { userId, displayName, pictureUrl }
+  const profile = JSON.parse(res.getContentText()); // { userId, displayName, pictureUrl }
+  cache.put(key, JSON.stringify(profile), 600);
+  return profile;
 }
 
 function lineApiCall_(path, payload) {

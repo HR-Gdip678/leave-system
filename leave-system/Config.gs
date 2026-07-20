@@ -66,7 +66,7 @@ const DEFAULT_LEAVE_TYPES = [
   { key: 'PERSONAL', name: 'ลากิจ', color: '#FFB020', defaultDays: 3, balanceField: 'PersonalLeaveBalance' },
   { key: 'MATERNITY', name: 'ลาคลอด', color: '#8E7CC3', defaultDays: 98, balanceField: 'MaternityLeaveBalance' },
   { key: 'ORDINATION', name: 'ลาบวช', color: '#4A90D9', defaultDays: 15, balanceField: 'OrdinationLeaveBalance' },
-  { key: 'SPECIAL', name: 'ลากิจพิเศษ', color: '#C9A24B', defaultDays: 3, balanceField: 'SpecialLeaveBalance' }
+  { key: 'SPECIAL', name: 'ลากิจพิเศษ', color: '#C9A24B', defaultDays: 5, balanceField: 'SpecialLeaveBalance' }
 ];
 
 // อนุมัติ 2 ขั้น: ยื่น → PENDING_MANAGER (รอ ผจก.ฝ่าย) → PENDING_HR (รอ HR) → APPROVED

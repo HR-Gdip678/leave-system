@@ -809,8 +809,9 @@ var LIFF_ID = '2010757225-fGRiop3v';
     const offset = (first.getDay() + 6) % 7; // Monday-first
     const todayIso = isoToday();
 
+    // วันทำการ = จันทร์-เสาร์ (หยุดเฉพาะวันอาทิตย์ = คอลัมน์สุดท้าย)
     let html = DOW.map((d, i) =>
-      `<div class="cal-dow${i >= 5 ? ' weekend' : ''}">${d}</div>`).join('');
+      `<div class="cal-dow${i === 6 ? ' weekend' : ''}">${d}</div>`).join('');
 
     for (let i = 0; i < offset; i++) html += '<button type="button" class="cal-day other">.</button>';
 
@@ -818,7 +819,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
       const dateIso = iso(viewYear, viewMonth, d);
       const dow = new Date(viewYear, viewMonth, d).getDay();
       const cls = ['cal-day'];
-      if (dow === 0 || dow === 6) cls.push('weekend');
+      if (dow === 0) cls.push('weekend');
       if (dateIso < todayIso) cls.push('past');
       if (dateIso === todayIso) cls.push('today');
       if (rangeStart && dateIso === rangeStart) cls.push('range-start');
@@ -896,14 +897,14 @@ var LIFF_ID = '2010757225-fGRiop3v';
     return (toMinutes($('timeEnd').value) - toMinutes($('timeStart').value)) / 60;
   }
 
+  // วันทำการ = จันทร์-เสาร์ (หยุดเฉพาะวันอาทิตย์)
   function countBusinessDays(startStr, endStr) {
     const start = new Date(startStr);
     const end = new Date(endStr);
     let count = 0;
     const d = new Date(start);
     while (d <= end) {
-      const day = d.getDay();
-      if (day !== 0 && day !== 6) count++;
+      if (d.getDay() !== 0) count++;
       d.setDate(d.getDate() + 1);
     }
     return count;
@@ -924,7 +925,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
       const days = countBusinessDays(rangeStart, end);
       el.textContent = days > 0
         ? 'รวม ' + days + ' วันทำการ'
-        : 'ช่วงที่เลือกไม่มีวันทำการ (เสาร์-อาทิตย์)';
+        : 'ช่วงที่เลือกไม่มีวันทำการ (วันอาทิตย์)';
     }
   }
 

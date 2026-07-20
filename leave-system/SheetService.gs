@@ -140,14 +140,14 @@ function getLeaveTypes_() {
 
 // ---------- Leave Requests ----------
 
+// วันทำการ = จันทร์-เสาร์ (หยุดเฉพาะวันอาทิตย์)
 function calcBusinessDays_(startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate);
   let days = 0;
   const d = new Date(start);
   while (d <= end) {
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) days++;
+    if (d.getDay() !== 0) days++;
     d.setDate(d.getDate() + 1);
   }
   return days;

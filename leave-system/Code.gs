@@ -233,7 +233,7 @@ function submitLeaveRequest(accessToken, payload) {
   }
 
   if (timePeriod === PERIOD_FULL && calcBusinessDays_(startDate, endDate) <= 0) {
-    throw new Error('ช่วงวันที่เลือกไม่มีวันทำการ (เสาร์-อาทิตย์)');
+    throw new Error('ช่วงวันที่เลือกไม่มีวันทำการ (วันอาทิตย์)');
   }
 
   const request = createLeaveRequest_(employee, leaveType, startDate, endDate, String(reason).trim(), timePeriod, timeStart, timeEnd);

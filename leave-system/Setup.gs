@@ -36,6 +36,9 @@ function setupSpreadsheet() {
     });
   }
 
+  // migrate: ลากิจพิเศษปรับโควตาเริ่มต้นจาก 3 เป็น 5 วัน
+  bumpDefaultDays_(ss, 'SPECIAL', 3, 5);
+
   backfillEmployeeBalances_(ss);
 
   const deptSheet = ss.getSheetByName(SHEET_DEPARTMENTS);
@@ -82,6 +85,35 @@ function backfillEmployeeBalances_(ss) {
     });
     if (changed) range.setValues(values);
   });
+}
+
+// ปรับ "โควตาเริ่มต้นต่อปี" ของประเภทลาหนึ่งจากค่าเก่าเป็นค่าใหม่ ทั้งในชีต LeaveTypes
+// (นิยามโควตา) และในชีต Employees ของคนที่ยังไม่ได้แตะยอดนี้เลย (ยังเท่าค่าเก่าเป๊ะ ๆ)
+// คนที่ลาไปแล้วบางส่วนจะไม่ถูกแก้ทับ กันข้อมูลเพี้ยน — ปรับให้ HR ทำมือแทน
+function bumpDefaultDays_(ss, typeKey, oldDays, newDays) {
+  const typesSheet = ss.getSheetByName(SHEET_LEAVE_TYPES);
+  if (typesSheet && typesSheet.getLastRow() >= 2) {
+    const rows = typesSheet.getRange(2, 1, typesSheet.getLastRow() - 1, 5).getValues();
+    rows.forEach((row, i) => {
+      if (row[0] === typeKey && Number(row[3]) === oldDays) {
+        typesSheet.getRange(i + 2, 4).setValue(newDays);
+      }
+    });
+  }
+
+  const type = DEFAULT_LEAVE_TYPES.find(t => t.key === typeKey);
+  const empSheet = ss.getSheetByName(SHEET_EMPLOYEES);
+  if (!type || !empSheet || empSheet.getLastRow() < 2) return;
+  const headers = empSheet.getRange(1, 1, 1, empSheet.getLastColumn()).getValues()[0];
+  const col = headers.indexOf(type.balanceField) + 1;
+  if (col === 0) return;
+  const range = empSheet.getRange(2, col, empSheet.getLastRow() - 1, 1);
+  const values = range.getValues();
+  let changed = false;
+  values.forEach(row => {
+    if (Number(row[0]) === oldDays) { row[0] = newDays; changed = true; }
+  });
+  if (changed) range.setValues(values);
 }
 
 function ensureColumns_(ss, name, headers) {

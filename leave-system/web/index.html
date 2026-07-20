@@ -245,6 +245,22 @@
       background: var(--gold-soft);
       color: var(--gold-dark);
     }
+    .period-row-2 { grid-template-columns: repeat(2, 1fr); }
+    .time-range {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .btn-cancel-outline {
+      background: none;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      margin-top: 10px;
+      padding: 9px;
+      font-size: 13px;
+      border-radius: 12px;
+    }
 
     .days-preview {
       margin-top: 12px;
@@ -328,6 +344,7 @@
     .badge-status.PENDING_HR { background: var(--navy-soft); color: var(--navy-2); }
     .badge-status.APPROVED { background: var(--green-soft); color: var(--green); }
     .badge-status.REJECTED { background: var(--danger-soft); color: var(--danger); }
+    .badge-status.CANCELLED { background: var(--border); color: var(--muted); }
 
     .stage-chip {
       display: inline-block;
@@ -446,10 +463,19 @@
 
         <div class="card">
           <h2 class="card-title">🕐 ช่วงเวลา <span class="req">*</span></h2>
-          <div class="period-row">
+          <div class="period-row period-row-2">
             <button type="button" class="period-pill selected" data-period="FULL">เต็มวัน</button>
-            <button type="button" class="period-pill" data-period="MORNING">เช้า</button>
-            <button type="button" class="period-pill" data-period="AFTERNOON">บ่าย</button>
+            <button type="button" class="period-pill" data-period="HOURLY">ระบุช่วงเวลา</button>
+          </div>
+          <div id="timeRange" class="time-range hidden">
+            <label class="field">
+              <span>ตั้งแต่เวลา</span>
+              <select id="timeStart"></select>
+            </label>
+            <label class="field">
+              <span>ถึงเวลา</span>
+              <select id="timeEnd"></select>
+            </label>
           </div>
           <div id="daysPreview" class="days-preview hidden"></div>
         </div>
@@ -457,8 +483,8 @@
         <div class="card">
           <h2 class="card-title">📝 รายละเอียด</h2>
           <label class="field">
-            <span>เหตุผลการลา (ไม่บังคับ)</span>
-            <textarea id="reason" rows="3" placeholder="ระบุเหตุผลการลาโดยย่อ (ถ้ามี)..."></textarea>
+            <span>เหตุผลการลา <span class="req">*</span></span>
+            <textarea id="reason" rows="3" required placeholder="ระบุเหตุผลการลา (จำเป็น)..."></textarea>
           </label>
         </div>
 
@@ -536,8 +562,9 @@ var LIFF_ID = '2010757225-fGRiop3v';
   const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
                        'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   const DOW = ['จ','อ','พ','พฤ','ศ','ส','อา'];
-  const TYPE_EMOJI = { ANNUAL:'🏖️', SICK:'🏥', PERSONAL:'🏠', MATERNITY:'👶', ORDINATION:'🙏' };
-  const PERIOD_TEXT = { FULL:'เต็มวัน', MORNING:'ครึ่งวันเช้า', AFTERNOON:'ครึ่งวันบ่าย' };
+  const TYPE_EMOJI = { ANNUAL:'🏖️', SICK:'🏥', PERSONAL:'🏠', MATERNITY:'👶', ORDINATION:'🙏', SPECIAL:'✨' };
+  const PERIOD_TEXT = { FULL:'เต็มวัน', MORNING:'ครึ่งวันเช้า', AFTERNOON:'ครึ่งวันบ่าย', HOURLY:'ตามช่วงเวลา' };
+  const WORK_HOURS_PER_DAY = 8;
 
   const $ = (id) => document.getElementById(id);
 
@@ -788,24 +815,48 @@ var LIFF_ID = '2010757225-fGRiop3v';
     updatePreview();
   }
 
-  // ---------- Period pills ----------
+  // ---------- Period pills + time range ----------
 
   function setupPeriodPills() {
+    // เติมตัวเลือกเวลา 08:00 - 18:00 ทุกครึ่งชั่วโมง
+    const times = [];
+    for (let h = 8; h <= 18; h++) {
+      times.push(String(h).padStart(2, '0') + ':00');
+      if (h < 18) times.push(String(h).padStart(2, '0') + ':30');
+    }
+    const opts = times.map(t => `<option value="${t}">${t} น.</option>`).join('');
+    $('timeStart').innerHTML = opts;
+    $('timeEnd').innerHTML = opts;
+    $('timeStart').value = '09:00';
+    $('timeEnd').value = '12:00';
+    $('timeStart').addEventListener('change', updatePreview);
+    $('timeEnd').addEventListener('change', updatePreview);
+
     document.querySelectorAll('.period-pill').forEach(pill => {
       pill.addEventListener('click', () => {
         document.querySelectorAll('.period-pill').forEach(p => p.classList.remove('selected'));
         pill.classList.add('selected');
         period = pill.dataset.period;
+        $('timeRange').classList.toggle('hidden', period !== 'HOURLY');
         if (period !== 'FULL' && rangeStart) {
           rangeEnd = rangeStart;
           renderCalendar();
         }
         $('calHint').textContent = period === 'FULL'
           ? 'แตะวันที่เริ่ม แล้วแตะวันที่สิ้นสุด'
-          : 'ลาครึ่งวันเลือกได้ 1 วัน — แตะวันที่ต้องการ';
+          : 'ลาแบบระบุเวลาเลือกได้ 1 วัน — แตะวันที่ต้องการ';
         updatePreview();
       });
     });
+  }
+
+  function toMinutes(t) {
+    const p = String(t).split(':');
+    return Number(p[0]) * 60 + Number(p[1] || 0);
+  }
+
+  function selectedHours() {
+    return (toMinutes($('timeEnd').value) - toMinutes($('timeStart').value)) / 60;
   }
 
   function countBusinessDays(startStr, endStr) {
@@ -826,8 +877,12 @@ var LIFF_ID = '2010757225-fGRiop3v';
     if (!rangeStart) { el.classList.add('hidden'); return; }
     const end = rangeEnd || rangeStart;
     el.classList.remove('hidden');
-    if (period !== 'FULL') {
-      el.textContent = 'รวม 0.5 วัน (' + PERIOD_TEXT[period] + ')';
+    if (period === 'HOURLY') {
+      const hours = selectedHours();
+      if (hours <= 0) { el.textContent = 'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม'; return; }
+      if (hours > WORK_HOURS_PER_DAY) { el.textContent = 'เกิน ' + WORK_HOURS_PER_DAY + ' ชม. — กรุณาเลือกลาเต็มวัน'; return; }
+      const days = Math.min(1, Math.round((hours / WORK_HOURS_PER_DAY) * 100) / 100);
+      el.textContent = 'รวม ' + hours + ' ชม. (คิดเป็น ' + days + ' วัน)';
     } else {
       const days = countBusinessDays(rangeStart, end);
       el.textContent = days > 0
@@ -842,9 +897,15 @@ var LIFF_ID = '2010757225-fGRiop3v';
     $('submitBtn').addEventListener('click', async () => {
       if (!selectedType) { showToast('กรุณาเลือกประเภทการลา', true); return; }
       if (!rangeStart) { showToast('กรุณาเลือกวันที่ลา', true); return; }
+      if (!$('reason').value.trim()) { showToast('กรุณาระบุเหตุผลการลา', true); return; }
       const endDate = rangeEnd || rangeStart;
       if (period === 'FULL' && countBusinessDays(rangeStart, endDate) <= 0) {
         showToast('ช่วงที่เลือกไม่มีวันทำการ', true); return;
+      }
+      if (period === 'HOURLY') {
+        const hours = selectedHours();
+        if (hours <= 0) { showToast('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม', true); return; }
+        if (hours > WORK_HOURS_PER_DAY) { showToast('ช่วงเวลาเกิน ' + WORK_HOURS_PER_DAY + ' ชม. กรุณาเลือกลาเต็มวัน', true); return; }
       }
 
       const btn = $('submitBtn');
@@ -857,6 +918,8 @@ var LIFF_ID = '2010757225-fGRiop3v';
             startDate: rangeStart,
             endDate: endDate,
             timePeriod: period,
+            timeStart: period === 'HOURLY' ? $('timeStart').value : '',
+            timeEnd: period === 'HOURLY' ? $('timeEnd').value : '',
             reason: $('reason').value.trim()
           }
         });
@@ -894,7 +957,14 @@ var LIFF_ID = '2010757225-fGRiop3v';
 
   // ---------- History ----------
 
-  function periodText(p) { return PERIOD_TEXT[p] || 'เต็มวัน'; }
+  function periodText(r) {
+    if (r.timePeriod === 'HOURLY' && r.timeStart && r.timeEnd) return r.timeStart + '-' + r.timeEnd + ' น.';
+    return PERIOD_TEXT[r.timePeriod] || 'เต็มวัน';
+  }
+
+  function isPendingStatus(s) {
+    return s === 'PENDING' || s === 'PENDING_MANAGER' || s === 'PENDING_HR';
+  }
 
   async function refreshHistory() {
     const list = $('historyList');
@@ -903,6 +973,9 @@ var LIFF_ID = '2010757225-fGRiop3v';
       const items = await api('getMyLeaves');
       $('historyEmpty').classList.toggle('hidden', items.length > 0);
       list.innerHTML = items.map(renderHistoryCard).join('');
+      list.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => cancelRequest(btn.dataset.id));
+      });
     } catch (err) {
       list.innerHTML = '';
       showToast(err.message || String(err), true);
@@ -916,14 +989,26 @@ var LIFF_ID = '2010757225-fGRiop3v';
         <div class="req-top">
           <div>
             <div class="req-type">${emojiOf(r.leaveType)} ${escapeHtml(typeName)}</div>
-            <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r.timePeriod)}</div>
+            <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r)}</div>
           </div>
           <span class="badge-status ${r.status}">${statusLabel(r.status)}</span>
         </div>
         ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
         ${r.approverComment ? `<div class="req-reason muted">หมายเหตุผู้อนุมัติ: ${escapeHtml(r.approverComment)}</div>` : ''}
+        ${isPendingStatus(r.status) ? `<button class="btn btn-cancel-outline cancel-btn" data-id="${r.requestId}">🚫 ยกเลิกใบลา</button>` : ''}
       </div>
     `;
+  }
+
+  async function cancelRequest(requestId) {
+    if (!confirm('ยืนยันการยกเลิกใบลานี้?')) return;
+    try {
+      await api('cancelLeaveRequest', { requestId });
+      showToast('ยกเลิกใบลาเรียบร้อยแล้ว');
+      refreshHistory();
+    } catch (err) {
+      showToast(err.message || String(err), true);
+    }
   }
 
   // ---------- Approvals ----------
@@ -961,7 +1046,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
           <div>
             <div class="req-type">${emojiOf(r.leaveType)} ${escapeHtml(typeName)}</div>
             <div class="req-name">${escapeHtml(r.name)} · ${escapeHtml(r.department)}</div>
-            <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r.timePeriod)}</div>
+            <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r)}</div>
           </div>
         </div>
         ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
@@ -1005,7 +1090,8 @@ var LIFF_ID = '2010757225-fGRiop3v';
       PENDING_MANAGER: 'รอ ผจก.ฝ่าย',
       PENDING_HR: 'รอ HR',
       APPROVED: 'อนุมัติแล้ว',
-      REJECTED: 'ไม่อนุมัติ'
+      REJECTED: 'ไม่อนุมัติ',
+      CANCELLED: 'ยกเลิกแล้ว'
     }[status] || status;
   }
 

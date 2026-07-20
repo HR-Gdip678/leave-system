@@ -42,7 +42,7 @@ function leaveTypeLabel_(leaveType) {
 
 function leaveTypeEmoji_(leaveType) {
   return {
-    ANNUAL: '🏖️', SICK: '🏥', PERSONAL: '🏠', MATERNITY: '👶', ORDINATION: '🙏'
+    ANNUAL: '🏖️', SICK: '🏥', PERSONAL: '🏠', MATERNITY: '👶', ORDINATION: '🙏', SPECIAL: '✨'
   }[leaveType] || '📋';
 }
 
@@ -79,13 +79,13 @@ function buildApprovalRequestFlex_(request, stage) {
             contents: [
               chip_(emoji + ' ' + label, '#EAF0FB', FLEX_NAVY),
               chip_(String(request.days) + ' วัน', '#E8F6EC', '#1E7B45'),
-              chip_(periodLabel_(request.timePeriod), '#F4F1E8', '#8A6D1D')
+              chip_(request.periodText || periodLabel_(request.timePeriod), '#F4F1E8', '#8A6D1D')
             ]
           },
           { type: 'separator', margin: 'lg' },
           kv_('📅 วันที่เริ่ม', request.startDate),
           kv_('📅 วันที่สิ้นสุด', request.endDate),
-          kv_('🕐 ช่วงเวลา', periodLabel_(request.timePeriod)),
+          kv_('🕐 ช่วงเวลา', request.periodText || periodLabel_(request.timePeriod)),
           kv_('💬 เหตุผล', request.reason || '-'),
           { type: 'text', text: 'ยื่นเมื่อ ' + submittedAt, color: '#AAB4C4', size: 'xxs', margin: 'lg', align: 'end' }
         ]
@@ -147,7 +147,7 @@ function buildDecisionNoticeFlex_(request, decision, stage) {
         type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: 'xl',
         contents: [
           kv_('📅 วันที่', request.startDate + ' ถึง ' + request.endDate),
-          kv_('🕐 ช่วงเวลา', periodLabel_(request.timePeriod)),
+          kv_('🕐 ช่วงเวลา', request.periodText || periodLabel_(request.timePeriod)),
           kv_('⏱️ จำนวน', String(request.days) + ' วัน'),
           { type: 'text', text: approved ? 'ยอดวันลาคงเหลือถูกหักอัตโนมัติแล้ว 🦙' : 'ยอดวันลาคงเหลือไม่ถูกหัก 🦙', color: '#AAB4C4', size: 'xxs', margin: 'lg' }
         ]

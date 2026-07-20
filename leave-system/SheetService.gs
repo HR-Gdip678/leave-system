@@ -136,11 +136,20 @@ function calcBusinessDays_(startDate, endDate) {
   return days;
 }
 
-function createLeaveRequest_(employee, leaveType, startDate, endDate, reason, timePeriod) {
+function calcLeaveDays_(period, startDate, endDate, timeStart, timeEnd) {
+  if (period === PERIOD_HOURLY) {
+    const hours = hoursBetween_(timeStart, timeEnd);
+    return Math.min(1, Math.round((hours / WORK_HOURS_PER_DAY) * 100) / 100);
+  }
+  if (period === PERIOD_MORNING || period === PERIOD_AFTERNOON) return 0.5;
+  return calcBusinessDays_(startDate, endDate);
+}
+
+function createLeaveRequest_(employee, leaveType, startDate, endDate, reason, timePeriod, timeStart, timeEnd) {
   const sheet = getSheet_(SHEET_LEAVE_REQUESTS);
   const requestId = 'REQ-' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd-HHmmss') + '-' + Math.floor(Math.random() * 900 + 100);
   const period = timePeriod || PERIOD_FULL;
-  const days = period === PERIOD_FULL ? calcBusinessDays_(startDate, endDate) : 0.5;
+  const days = calcLeaveDays_(period, startDate, endDate, timeStart, timeEnd);
 
   const row = LEAVE_REQUESTS_HEADERS.map(h => {
     switch (h) {
@@ -156,6 +165,8 @@ function createLeaveRequest_(employee, leaveType, startDate, endDate, reason, ti
       case 'Status': return STATUS_PENDING_MANAGER;
       case 'SubmittedAt': return new Date();
       case 'TimePeriod': return period;
+      case 'TimeStart': return timeStart || '';
+      case 'TimeEnd': return timeEnd || '';
       default: return '';
     }
   });
@@ -164,7 +175,8 @@ function createLeaveRequest_(employee, leaveType, startDate, endDate, reason, ti
   return {
     requestId, lineUserId: employee.LineUserId, name: employee.Name,
     department: employee.Department, leaveType, startDate, endDate, days, reason,
-    timePeriod: period, status: STATUS_PENDING_MANAGER
+    timePeriod: period, timeStart: timeStart || '', timeEnd: timeEnd || '',
+    status: STATUS_PENDING_MANAGER
   };
 }
 

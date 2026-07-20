@@ -48,6 +48,7 @@ function routeApi_(req) {
     case 'getMyLeaves': return getMyLeaves(t);
     case 'getPendingApprovals': return getPendingApprovals(t);
     case 'decideLeaveRequest': return decideLeaveRequest(t, req.requestId, req.decision, req.comment || '');
+    case 'cancelLeaveRequest': return cancelLeaveRequest(t, req.requestId);
     default: throw new Error('ไม่รู้จักคำสั่ง: ' + req.action);
   }
 }
@@ -158,7 +159,8 @@ function flexPayload_(request) {
     requestId: request.RequestId, name: request.Name, department: request.Department,
     leaveType: request.LeaveType, startDate: formatDate_(request.StartDate),
     endDate: formatDate_(request.EndDate), days: request.Days, reason: request.Reason,
-    timePeriod: request.TimePeriod
+    timePeriod: request.TimePeriod,
+    periodText: periodDisplayFields_(request.TimePeriod, request.TimeStart, request.TimeEnd)
   };
 }
 
@@ -214,24 +216,33 @@ function submitLeaveRequest(accessToken, payload) {
   const employee = getEmployee_(profile.userId);
   if (!employee) throw new Error('กรุณาลงทะเบียนก่อนยื่นคำขอลา');
 
-  const { leaveType, startDate, endDate, reason } = payload;
+  const { leaveType, startDate, endDate, reason, timeStart, timeEnd } = payload;
   const timePeriod = payload.timePeriod || PERIOD_FULL;
   if (!leaveType || !startDate || !endDate) throw new Error('กรุณากรอกข้อมูลให้ครบถ้วน');
+  if (!reason || !String(reason).trim()) throw new Error('กรุณาระบุเหตุผลการลา');
   if (new Date(endDate) < new Date(startDate)) throw new Error('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มลา');
   if (timePeriod !== PERIOD_FULL && startDate !== endDate) {
-    throw new Error('ลาครึ่งวันเลือกได้ครั้งละ 1 วันเท่านั้น');
+    throw new Error('ลาแบบระบุช่วงเวลาเลือกได้ครั้งละ 1 วันเท่านั้น');
+  }
+
+  if (timePeriod === PERIOD_HOURLY) {
+    if (!timeStart || !timeEnd) throw new Error('กรุณาเลือกเวลาเริ่มและเวลาสิ้นสุด');
+    const hours = hoursBetween_(timeStart, timeEnd);
+    if (hours <= 0) throw new Error('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม');
+    if (hours > WORK_HOURS_PER_DAY) throw new Error('ช่วงเวลาเกิน ' + WORK_HOURS_PER_DAY + ' ชั่วโมง — กรุณาเลือกลาเต็มวันแทน');
   }
 
   if (timePeriod === PERIOD_FULL && calcBusinessDays_(startDate, endDate) <= 0) {
     throw new Error('ช่วงวันที่เลือกไม่มีวันทำการ (เสาร์-อาทิตย์)');
   }
 
-  const request = createLeaveRequest_(employee, leaveType, startDate, endDate, reason, timePeriod);
+  const request = createLeaveRequest_(employee, leaveType, startDate, endDate, String(reason).trim(), timePeriod, timeStart, timeEnd);
 
   const approver = getApproverForDepartment_(employee.Department);
   if (approver && approver.lineUserId) {
     const requestForFlex = Object.assign({}, request, {
-      startDate: formatDate_(request.startDate), endDate: formatDate_(request.endDate)
+      startDate: formatDate_(request.startDate), endDate: formatDate_(request.endDate),
+      periodText: periodDisplayFields_(request.timePeriod, request.timeStart, request.timeEnd)
     });
     linePush_(approver.lineUserId, [buildApprovalRequestFlex_(requestForFlex, 'MANAGER')]);
   }
@@ -268,11 +279,37 @@ function decideLeaveRequest(accessToken, requestId, decision, comment) {
   return { ok: true };
 }
 
+// พนักงานยกเลิกใบลาของตัวเองได้ ตราบใดที่ยังไม่ถูกอนุมัติ/ปฏิเสธ
+function cancelLeaveRequest(accessToken, requestId) {
+  const profile = lineProfileFromAccessToken_(accessToken);
+  const request = getLeaveRequestById_(requestId);
+  if (!request) throw new Error('ไม่พบคำขอลานี้');
+  if (request.LineUserId !== profile.userId) throw new Error('ยกเลิกได้เฉพาะใบลาของตัวเองเท่านั้น');
+  if (!isPendingAny_(request.Status)) {
+    throw new Error('ยกเลิกได้เฉพาะใบลาที่ยังรออนุมัติ (สถานะปัจจุบัน: ' + request.Status + ')');
+  }
+
+  updateRequestFields_(request.RequestId, { Status: STATUS_CANCELLED, DecidedAt: new Date() });
+
+  // แจ้งผู้อนุมัติของขั้นที่ค้างอยู่ ให้รู้ว่าใบลานี้ถูกถอนแล้ว
+  const noticeText = '🚫 ' + request.Name + ' ยกเลิกคำขอ' + leaveTypeLabel_(request.LeaveType) +
+    ' (' + formatDate_(request.StartDate) + ' - ' + formatDate_(request.EndDate) + ') แล้ว ไม่ต้องดำเนินการต่อ';
+  if (isPendingManager_(request.Status)) {
+    const approver = getApproverForDepartment_(request.Department);
+    if (approver && approver.lineUserId) linePush_(approver.lineUserId, [{ type: 'text', text: noticeText }]);
+  } else {
+    getHrApprovers_().forEach(h => linePush_(h.LineUserId, [{ type: 'text', text: noticeText }]));
+  }
+
+  return { ok: true };
+}
+
 function serializeRequest_(r) {
   return {
     requestId: r.RequestId, name: r.Name, department: r.Department, leaveType: r.LeaveType,
     startDate: formatDate_(r.StartDate), endDate: formatDate_(r.EndDate), days: r.Days,
     reason: r.Reason, status: r.Status, approverComment: r.ApproverComment,
-    submittedAt: formatDate_(r.SubmittedAt), timePeriod: r.TimePeriod || 'FULL'
+    submittedAt: formatDate_(r.SubmittedAt), timePeriod: r.TimePeriod || 'FULL',
+    timeStart: r.TimeStart || '', timeEnd: r.TimeEnd || ''
   };
 }

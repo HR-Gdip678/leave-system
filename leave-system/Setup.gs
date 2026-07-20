@@ -25,7 +25,18 @@ function setupSpreadsheet() {
     DEFAULT_LEAVE_TYPES.forEach(t => {
       leaveTypesSheet.appendRow([t.key, t.name, t.color, t.defaultDays, t.balanceField]);
     });
+  } else {
+    // migrate: เติมประเภทลาที่เพิ่มมาใหม่ (เช่น ลากิจพิเศษ) ลงชีตเดิม
+    const existingKeys = leaveTypesSheet.getRange(2, 1, leaveTypesSheet.getLastRow() - 1, 1)
+      .getValues().map(r => r[0]);
+    DEFAULT_LEAVE_TYPES.forEach(t => {
+      if (existingKeys.indexOf(t.key) === -1) {
+        leaveTypesSheet.appendRow([t.key, t.name, t.color, t.defaultDays, t.balanceField]);
+      }
+    });
   }
+
+  backfillEmployeeBalances_(ss);
 
   const deptSheet = ss.getSheetByName(SHEET_DEPARTMENTS);
   if (deptSheet.getLastRow() < 2) {
@@ -51,6 +62,24 @@ function setupSpreadsheet() {
   } catch (e) {
     console.log('setupSpreadsheet เสร็จสิ้น (รันจาก editor จึงไม่แสดง popup)');
   }
+}
+
+// พนักงานเก่าที่ลงทะเบียนก่อนมีประเภทลาใหม่ จะมีช่องโควตาว่าง — เติมค่าเริ่มต้นให้
+function backfillEmployeeBalances_(ss) {
+  const sheet = ss.getSheetByName(SHEET_EMPLOYEES);
+  if (!sheet || sheet.getLastRow() < 2) return;
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  DEFAULT_LEAVE_TYPES.forEach(t => {
+    const col = headers.indexOf(t.balanceField) + 1;
+    if (col === 0) return;
+    const range = sheet.getRange(2, col, sheet.getLastRow() - 1, 1);
+    const values = range.getValues();
+    let changed = false;
+    values.forEach(row => {
+      if (row[0] === '' || row[0] === null) { row[0] = t.defaultDays; changed = true; }
+    });
+    if (changed) range.setValues(values);
+  });
 }
 
 function ensureColumns_(ss, name, headers) {

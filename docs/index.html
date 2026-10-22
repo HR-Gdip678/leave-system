@@ -7,26 +7,26 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap');
 
+    /* โทนทางการ + มินิมอล: สีหลักสีเดียว (น้ำเงินเข้ม) เส้นบางแทนเงา ไม่มีอีโมจิ */
     :root {
-      --navy: #152A4E;
-      --navy-2: #1E3A6D;
-      --navy-soft: #EAF0FB;
-      --gold: #C9A24B;
-      --gold-dark: #A8843A;
-      --gold-soft: #F4EEDD;
-      --bg: #F4F1EA;
+      --ink: #101828;
+      --navy: #1B2B48;
+      --navy-hover: #26395E;
+      --accent-soft: #EEF1F6;
+      --muted: #667085;
+      --subtle: #98A2B3;
+      --line: #E4E7EC;
+      --bg: #F7F8FA;
       --surface: #FFFFFF;
-      --text: #22304A;
-      --muted: #8A94A6;
-      --border: #E8E4D9;
-      --green: #1E7B45;
-      --green-soft: #E8F6EC;
-      --danger: #E25555;
-      --danger-soft: #FBEAEA;
-      --radius: 18px;
-      --shadow: 0 3px 14px rgba(21,42,78,0.08);
+      --green: #1F7A4D;
+      --green-soft: #ECF5EF;
+      --amber: #93620A;
+      --amber-soft: #FDF5E3;
+      --red: #B42318;
+      --red-soft: #FDEEEC;
+      --radius: 10px;
     }
 
     * { box-sizing: border-box; }
@@ -34,11 +34,14 @@
     html, body {
       margin: 0; padding: 0;
       background: var(--bg);
-      color: var(--text);
-      font-family: 'Noto Sans Thai', -apple-system, sans-serif;
+      color: var(--ink);
+      font-family: 'IBM Plex Sans Thai', -apple-system, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
 
+    button { font-family: inherit; }
     .hidden { display: none !important; }
 
     .screen {
@@ -49,421 +52,410 @@
     }
 
     .spinner {
-      width: 44px; height: 44px;
-      border: 4px solid var(--gold-soft);
-      border-top-color: var(--gold);
+      width: 28px; height: 28px;
+      border: 2px solid var(--line);
+      border-top-color: var(--navy);
       border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-      margin-bottom: 16px;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 14px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-screen p { color: var(--muted); font-size: 14px; margin: 0; }
 
-    .loading-screen p { color: var(--muted); }
-
-    .hero {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin: 12px 12px 0;
-      color: #fff;
-      display: flex; align-items: center; justify-content: space-between;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::after {
-      content: '';
-      position: absolute; right: -30px; top: -30px;
-      width: 130px; height: 130px;
-      background: radial-gradient(circle, rgba(201,162,75,0.35), transparent 70%);
-      border-radius: 50%;
-    }
-    .hero-welcome { font-size: 13px; color: #C7D2E8; margin-bottom: 2px; }
-    .hero-title { font-size: 24px; font-weight: 800; line-height: 1.2; }
-    .hero-title .gold { color: var(--gold); }
-    .hero-badge {
-      display: inline-block;
-      margin-top: 10px;
-      background: rgba(255,255,255,0.14);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #E8EDF6;
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 99px;
-    }
-    .hero-mascot { font-size: 56px; line-height: 1; z-index: 1; }
-
-    .profile-card {
+    /* ---------- Header ---------- */
+    .header {
       background: var(--surface);
-      border-radius: var(--radius);
-      margin: 12px;
-      padding: 14px 16px;
-      display: flex; align-items: center; gap: 12px;
-      box-shadow: var(--shadow);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 20px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
+    .header-label {
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    .user-name { font-size: 18px; font-weight: 600; margin-top: 2px; }
+    .user-dept { font-size: 13px; color: var(--muted); }
     .avatar {
-      width: 52px; height: 52px;
+      width: 44px; height: 44px; flex-shrink: 0;
       border-radius: 50%;
       object-fit: cover;
-      background: var(--navy-soft);
-      border: 2px solid var(--gold);
+      background: var(--accent-soft);
+      border: 1px solid var(--line);
     }
-    .user-name { font-weight: 700; font-size: 16px; }
-    .user-dept { color: var(--muted); font-size: 13px; }
 
+    .app { padding-bottom: 88px; }
+    .content { padding: 0 16px; }
+
+    .section-label {
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      letter-spacing: 0.02em;
+      margin: 20px 20px 8px;
+    }
+    .content .section-label { margin-left: 4px; margin-right: 4px; }
+
+    /* ---------- Balances: ตารางเดียว แบ่งช่องด้วยเส้นบาง ---------- */
+    /* gap 1px บนพื้นสีเส้น = เส้นแบ่งช่องบางๆ แบบตาราง */
     .balances {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin: 0 12px 12px;
-    }
-    .balance-card {
-      background: var(--surface);
-      border-radius: 14px;
-      padding: 12px 8px 10px;
-      text-align: center;
-      box-shadow: var(--shadow);
-    }
-    .bc-emoji { font-size: 22px; }
-    .bc-value { font-size: 22px; font-weight: 800; margin-top: 2px; }
-    .bc-name { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .bc-bar {
-      height: 5px; border-radius: 99px;
-      background: var(--border);
-      margin-top: 8px;
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin: 0 16px;
       overflow: hidden;
     }
-    .bc-bar > div { height: 100%; border-radius: 99px; }
+    .balance-card { background: var(--surface); padding: 12px 12px 14px; }
+    .bc-name { font-size: 12px; color: var(--muted); }
+    .bc-value {
+      font-size: 22px; font-weight: 600; margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    .bc-value small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+    .bc-bar { height: 2px; background: var(--line); margin-top: 8px; }
+    .bc-bar > div { height: 100%; background: var(--navy); }
 
-    .app { padding-bottom: 84px; }
-    .content { padding: 0 12px; }
-
+    /* ---------- Form ---------- */
     .card {
       background: var(--surface);
+      border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 18px 16px;
-      box-shadow: var(--shadow);
-      margin-bottom: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
     }
     .card-title {
       margin: 0 0 12px;
-      font-size: 16px; font-weight: 700;
-      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 600;
+      display: flex; align-items: baseline; gap: 8px;
     }
-    .card-title .req { color: var(--danger); font-size: 13px; }
-    .section-title { font-size: 16px; font-weight: 700; margin: 4px 0 12px; }
+    .card-title .step {
+      font-size: 12px; font-weight: 500; color: var(--subtle);
+      font-variant-numeric: tabular-nums;
+    }
+    .req { color: var(--red); font-weight: 500; }
 
     .type-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+      gap: 8px;
     }
     .type-card {
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
       background: var(--surface);
-      padding: 16px 8px;
-      text-align: center;
+      padding: 11px 12px;
+      text-align: left;
       cursor: pointer;
-      transition: all .15s;
-      font-family: inherit;
-      color: var(--text);
+      color: var(--ink);
+      transition: border-color .12s, background .12s;
     }
-    .type-card .t-emoji { font-size: 26px; display: block; margin-bottom: 6px; }
-    .type-card .t-name { font-size: 13px; font-weight: 600; }
-    .type-card .t-remain { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .type-card .t-name { display: block; font-size: 14px; font-weight: 500; }
+    .type-card .t-remain { font-size: 12px; color: var(--muted); margin-top: 1px; }
     .type-card.selected {
-      border-color: var(--gold);
-      background: var(--gold-soft);
-      box-shadow: 0 0 0 2px rgba(201,162,75,0.25);
+      border-color: var(--navy);
+      background: var(--accent-soft);
+      box-shadow: inset 0 0 0 1px var(--navy);
+    }
+    .type-card.selected::after {
+      content: '';
+      position: absolute; top: 12px; right: 12px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--navy);
     }
 
     .cal-head {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
-    .cal-title { font-weight: 800; font-size: 16px; color: var(--navy); }
+    .cal-title { font-weight: 600; font-size: 15px; }
     .cal-nav {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      border: none;
-      background: var(--bg);
-      color: var(--navy);
-      font-size: 16px;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 16px; line-height: 1;
       cursor: pointer;
     }
     .cal-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      gap: 2px;
       text-align: center;
     }
-    .cal-dow { font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 0; }
-    .cal-dow.weekend { color: #D98A8A; }
+    .cal-dow { font-size: 12px; color: var(--subtle); font-weight: 500; padding: 6px 0; }
+    .cal-dow.weekend { color: var(--red); opacity: 0.6; }
     .cal-day {
       aspect-ratio: 1;
       display: flex; align-items: center; justify-content: center;
-      border-radius: 12px;
+      border-radius: 8px;
       font-size: 14px;
       border: none; background: none;
-      color: var(--text);
+      color: var(--ink);
       cursor: pointer;
       padding: 0;
-      font-family: inherit;
+      font-variant-numeric: tabular-nums;
     }
     .cal-day.other { color: transparent; pointer-events: none; }
-    .cal-day.weekend { color: #D98A8A; }
-    .cal-day.past { color: #C9CDD6; }
-    .cal-day.today { box-shadow: inset 0 0 0 1.5px var(--gold); font-weight: 700; }
-    .cal-day.in-range { background: var(--gold-soft); border-radius: 0; }
+    .cal-day.weekend { color: var(--red); opacity: 0.6; }
+    .cal-day.past { color: var(--subtle); }
+    .cal-day.today { box-shadow: inset 0 0 0 1px var(--navy); font-weight: 600; }
+    .cal-day.in-range { background: var(--accent-soft); border-radius: 0; }
     .cal-day.range-start, .cal-day.range-end {
       background: var(--navy);
       color: #fff !important;
-      font-weight: 700;
-      border-radius: 12px;
+      opacity: 1;
+      font-weight: 600;
+      border-radius: 8px;
     }
     .cal-hint { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center; }
 
+    /* segmented control */
     .period-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 4px;
+      grid-template-columns: repeat(2, 1fr);
+      padding: 3px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
     }
     .period-pill {
-      border: 1.5px solid var(--border);
-      background: var(--surface);
-      border-radius: 99px;
-      padding: 10px 0;
-      font-size: 13px; font-weight: 600;
-      color: var(--text);
+      border: none;
+      background: none;
+      border-radius: 6px;
+      padding: 8px 0;
+      font-size: 14px; font-weight: 500;
+      color: var(--muted);
       cursor: pointer;
-      font-family: inherit;
     }
     .period-pill.selected {
-      border-color: var(--gold);
-      background: var(--gold-soft);
-      color: var(--gold-dark);
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(16,24,40,0.06);
     }
-    .period-row-2 { grid-template-columns: repeat(2, 1fr); }
     .time-range {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-top: 12px;
     }
-    .btn-cancel-outline {
-      background: none;
-      border: 1.5px solid var(--border);
-      color: var(--muted);
-      margin-top: 10px;
-      padding: 9px;
-      font-size: 13px;
-      border-radius: 12px;
-    }
 
     .days-preview {
       margin-top: 12px;
-      background: var(--green-soft);
-      color: var(--green);
-      font-weight: 700;
-      text-align: center;
-      border-radius: 12px;
-      padding: 10px;
-      font-size: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 14px; font-weight: 500;
+      color: var(--navy);
     }
 
-    .field { display: block; margin-bottom: 4px; }
-    .field > span { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .field { display: block; margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    .field > span { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
     .field input, .field select, .field textarea {
       width: 100%;
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
       background: var(--surface);
-      color: var(--text);
-      padding: 12px;
+      color: var(--ink);
+      padding: 10px 12px;
       font-size: 15px;
       font-family: inherit;
       outline: none;
+      transition: border-color .12s, box-shadow .12s;
     }
     .field textarea { resize: vertical; }
-    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 3px rgba(27,43,72,0.10);
+    }
 
     .btn {
       display: block; width: 100%;
-      border: none; border-radius: 14px;
-      padding: 15px;
-      font-size: 16px; font-weight: 700;
-      font-family: inherit;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 15px; font-weight: 600;
       cursor: pointer;
-      transition: opacity .15s;
+      transition: background .12s, opacity .12s;
     }
-    .btn:disabled { opacity: 0.55; }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(201,162,75,0.4);
-    }
-    .btn-approve { background: var(--green); color: #fff; }
+    .btn:disabled { opacity: 0.5; }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-primary:active { background: var(--navy-hover); }
+    .btn-approve { background: var(--navy); color: #fff; }
     .btn-reject-outline {
-      background: none;
-      border: 1.5px solid var(--danger);
-      color: var(--danger);
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--red);
     }
-    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-    .btn-row .btn { padding: 11px; font-size: 14px; border-radius: 12px; }
+    .btn-cancel-outline {
+      display: inline-block; width: auto;
+      background: none;
+      border: none;
+      color: var(--red);
+      margin-top: 8px;
+      padding: 4px 0;
+      font-size: 13px; font-weight: 500;
+    }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .btn-row .btn { padding: 10px; font-size: 14px; }
 
-    .list { display: flex; flex-direction: column; gap: 10px; }
+    /* ---------- Lists ---------- */
+    .section-title { font-size: 17px; font-weight: 600; margin: 20px 4px 12px; }
+    .list { display: flex; flex-direction: column; gap: 8px; }
     .req-card {
       background: var(--surface);
+      border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 14px 16px;
-      box-shadow: var(--shadow);
-      border-left: 4px solid var(--gold);
     }
     .req-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .req-type { font-weight: 700; font-size: 15px; }
-    .req-name { font-size: 13px; color: var(--muted); margin-top: 1px; }
-    .req-dates { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .req-type { font-weight: 600; font-size: 15px; }
+    .req-name { font-size: 13px; color: var(--ink); margin-top: 1px; }
+    .req-dates { font-size: 13px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
     .req-reason {
-      margin-top: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
       font-size: 13px;
-      background: var(--bg);
-      border-radius: 10px;
-      padding: 8px 10px;
+      color: var(--ink);
     }
-    .req-reason.muted { color: var(--muted); }
+    .req-reason.muted { color: var(--muted); border-top: none; padding-top: 0; margin-top: 4px; }
 
     .badge-status {
-      font-size: 11px; font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 99px;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 6px;
       white-space: nowrap;
     }
-    .badge-status.PENDING, .badge-status.PENDING_MANAGER { background: var(--gold-soft); color: var(--gold-dark); }
-    .badge-status.PENDING_HR { background: var(--navy-soft); color: var(--navy-2); }
+    .badge-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge-status.PENDING, .badge-status.PENDING_MANAGER,
+    .badge-status.PENDING_HR { background: var(--amber-soft); color: var(--amber); }
     .badge-status.APPROVED { background: var(--green-soft); color: var(--green); }
-    .badge-status.REJECTED { background: var(--danger-soft); color: var(--danger); }
-    .badge-status.CANCELLED { background: var(--border); color: var(--muted); }
+    .badge-status.REJECTED { background: var(--red-soft); color: var(--red); }
+    .badge-status.CANCELLED { background: var(--bg); color: var(--muted); }
 
     .stage-chip {
-      display: inline-block;
-      font-size: 11px; font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 99px;
-      background: var(--navy);
-      color: #fff;
+      display: block;
+      font-size: 12px; font-weight: 500;
+      color: var(--muted);
       margin-bottom: 6px;
     }
-    .stage-chip.hr { background: var(--gold-dark); }
+    .stage-chip.hr { color: var(--navy); }
 
-    .empty { text-align: center; color: var(--muted); padding: 28px 0; font-size: 14px; }
+    .empty { text-align: center; color: var(--muted); padding: 32px 0; font-size: 14px; }
 
+    /* ---------- Tab bar ---------- */
     .tabbar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       background: var(--surface);
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--line);
       display: flex;
-      padding: 6px 0 calc(8px + env(safe-area-inset-bottom));
+      padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
       z-index: 10;
     }
     .tab-btn {
       flex: 1;
       border: none; background: none;
-      font-family: inherit;
-      font-size: 11px;
-      color: var(--muted);
+      font-size: 11px; font-weight: 500;
+      color: var(--subtle);
       display: flex; flex-direction: column; align-items: center; gap: 3px;
       padding: 6px 0;
       cursor: pointer;
       position: relative;
     }
-    .tab-btn .tab-icon { font-size: 22px; }
-    .tab-btn.active { color: var(--gold-dark); font-weight: 700; }
+    .tab-btn svg { width: 22px; height: 22px; }
+    .tab-btn.active { color: var(--navy); }
     .badge {
       position: absolute;
-      top: 0; right: 26%;
-      background: var(--danger);
+      top: 2px; left: calc(50% + 6px);
+      background: var(--red);
       color: #fff;
-      font-size: 10px; font-weight: 700;
-      min-width: 17px; height: 17px;
-      border-radius: 99px;
+      font-size: 10px; font-weight: 600;
+      min-width: 16px; height: 16px;
+      border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
       padding: 0 4px;
     }
 
-    .register-screen .card { width: 100%; max-width: 400px; }
-    .register-mascot { font-size: 54px; text-align: center; margin-bottom: 6px; }
-    .muted { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+    /* ---------- Register ---------- */
+    .register-screen .card { width: 100%; max-width: 400px; padding: 24px 20px; }
+    .register-mark {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      background: var(--navy);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .register-mark svg { width: 22px; height: 22px; }
+    .register-title { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+    .muted { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
 
     .toast {
       position: fixed;
-      bottom: 96px; left: 50%;
+      bottom: 92px; left: 50%;
       transform: translateX(-50%);
-      background: var(--navy);
+      background: var(--ink);
       color: #fff;
-      padding: 11px 20px;
-      border-radius: 99px;
+      padding: 10px 16px;
+      border-radius: 8px;
       font-size: 14px;
-      box-shadow: 0 4px 16px rgba(21,42,78,0.35);
+      box-shadow: 0 8px 24px rgba(16,24,40,0.18);
       z-index: 100;
-      max-width: 86vw;
+      max-width: calc(100vw - 32px);
       text-align: center;
     }
-    .toast.error { background: var(--danger); }
+    .toast.error { background: var(--red); }
   </style>
 </head>
 <body>
 
   <div id="loading" class="screen loading-screen">
     <div class="spinner"></div>
-    <p>กำลังโหลด... (web)</p>
+    <p>กำลังโหลด...</p>
   </div>
 
   <div id="app" class="app hidden">
 
-    <div class="hero">
+    <header class="header">
       <div>
-        <div class="hero-welcome">ยินดีต้อนรับกลับมา</div>
-        <div class="hero-title">ยื่นใบลา<br><span class="gold">ออนไลน์</span></div>
-        <span class="hero-badge">ระบบแจ้งหัวหน้าทันที</span>
-      </div>
-      <div class="hero-mascot">🦙</div>
-    </div>
-
-    <div class="profile-card">
-      <img id="avatar" class="avatar" src="" alt="">
-      <div>
+        <div class="header-label">ระบบการลาออนไลน์</div>
         <div id="userName" class="user-name">-</div>
         <div id="userDept" class="user-dept">-</div>
       </div>
-    </div>
+      <img id="avatar" class="avatar" src="" alt="">
+    </header>
 
+    <div class="section-label">วันลาคงเหลือ</div>
     <section id="balances" class="balances"></section>
 
     <main class="content">
 
       <div id="view-submit" class="view">
+        <div class="section-label">ยื่นใบลา</div>
+
         <div class="card">
-          <h2 class="card-title">📋 ประเภทการลา <span class="req">*</span></h2>
+          <h2 class="card-title"><span class="step">01</span>ประเภทการลา <span class="req">*</span></h2>
           <div id="leaveTypeCards" class="type-grid"></div>
         </div>
 
         <div class="card">
-          <h2 class="card-title">📅 เลือกวันที่ลา <span class="req">*</span></h2>
+          <h2 class="card-title"><span class="step">02</span>วันที่ลา <span class="req">*</span></h2>
           <div class="cal-head">
-            <button type="button" id="calPrev" class="cal-nav">‹</button>
+            <button type="button" id="calPrev" class="cal-nav" aria-label="เดือนก่อน">‹</button>
             <div id="calTitle" class="cal-title"></div>
-            <button type="button" id="calNext" class="cal-nav">›</button>
+            <button type="button" id="calNext" class="cal-nav" aria-label="เดือนถัดไป">›</button>
           </div>
           <div id="calGrid" class="cal-grid"></div>
           <div id="calHint" class="cal-hint">แตะวันที่เริ่ม แล้วแตะวันที่สิ้นสุด</div>
         </div>
 
         <div class="card">
-          <h2 class="card-title">🕐 ช่วงเวลา <span class="req">*</span></h2>
-          <div class="period-row period-row-2">
+          <h2 class="card-title"><span class="step">03</span>ช่วงเวลา <span class="req">*</span></h2>
+          <div class="period-row">
             <button type="button" class="period-pill selected" data-period="FULL">เต็มวัน</button>
             <button type="button" class="period-pill" data-period="HOURLY">ระบุช่วงเวลา</button>
           </div>
@@ -481,25 +473,24 @@
         </div>
 
         <div class="card">
-          <h2 class="card-title">📝 รายละเอียด</h2>
+          <h2 class="card-title"><span class="step">04</span>เหตุผลการลา <span class="req">*</span></h2>
           <label class="field">
-            <span>เหตุผลการลา <span class="req">*</span></span>
-            <textarea id="reason" rows="3" required placeholder="ระบุเหตุผลการลา (จำเป็น)..."></textarea>
+            <textarea id="reason" rows="3" required placeholder="ระบุเหตุผลการลา"></textarea>
           </label>
         </div>
 
-        <button id="submitBtn" class="btn btn-primary">🦙 ส่งคำขอลา</button>
-        <div style="height:14px"></div>
+        <button id="submitBtn" class="btn btn-primary">ส่งคำขอลา</button>
+        <div style="height:16px"></div>
       </div>
 
       <div id="view-history" class="view hidden">
-        <h2 class="section-title">📜 ประวัติการลาของฉัน</h2>
+        <h2 class="section-title">ประวัติการลา</h2>
         <div id="historyList" class="list"></div>
         <div id="historyEmpty" class="empty hidden">ยังไม่มีประวัติการลา</div>
       </div>
 
       <div id="view-approvals" class="view hidden">
-        <h2 class="section-title">✅ รายการรออนุมัติ</h2>
+        <h2 class="section-title">รายการรออนุมัติ</h2>
         <div id="approvalsList" class="list"></div>
         <div id="approvalsEmpty" class="empty hidden">ไม่มีรายการรออนุมัติ</div>
       </div>
@@ -507,13 +498,16 @@
 
     <nav class="tabbar">
       <button class="tab-btn active" data-view="submit">
-        <span class="tab-icon">📝</span><span>ยื่นใบลา</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 12v6M9 15h6"/></svg>
+        <span>ยื่นใบลา</span>
       </button>
       <button class="tab-btn" data-view="history">
-        <span class="tab-icon">📜</span><span>ประวัติ</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>ประวัติ</span>
       </button>
       <button id="approvalsTabBtn" class="tab-btn hidden" data-view="approvals">
-        <span class="tab-icon">✅</span><span>รออนุมัติ</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        <span>รออนุมัติ</span>
         <span id="approvalsBadge" class="badge hidden">0</span>
       </button>
     </nav>
@@ -521,9 +515,11 @@
 
   <div id="registerScreen" class="screen register-screen hidden">
     <div class="card">
-      <div class="register-mascot">🦙</div>
-      <h2 class="card-title" style="justify-content:center">ลงทะเบียนใช้งานครั้งแรก</h2>
-      <p class="muted" style="text-align:center">กรอกข้อมูลเพื่อเริ่มใช้งานระบบลาออนไลน์</p>
+      <div class="register-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+      </div>
+      <h2 class="register-title">ลงทะเบียนเข้าใช้งาน</h2>
+      <p class="muted">กรอกข้อมูลพนักงานเพื่อเริ่มใช้ระบบการลาออนไลน์</p>
       <label class="field">
         <span>รหัสพนักงาน</span>
         <input type="text" id="regEmployeeCode" required placeholder="เช่น EMP001">
@@ -536,8 +532,8 @@
         <span>แผนก</span>
         <select id="regDepartment" required></select>
       </label>
-      <div style="height:10px"></div>
-      <button id="registerBtn" class="btn btn-primary">เริ่มใช้งาน</button>
+      <div style="height:20px"></div>
+      <button id="registerBtn" class="btn btn-primary">ลงทะเบียน</button>
     </div>
   </div>
 
@@ -566,7 +562,6 @@ var LIFF_ID = '2010757225-fGRiop3v';
   const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
                        'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   const DOW = ['จ','อ','พ','พฤ','ศ','ส','อา'];
-  const TYPE_EMOJI = { ANNUAL:'🏖️', SICK:'🏥', PERSONAL:'🏠', MATERNITY:'👶', ORDINATION:'🙏', SPECIAL:'✨' };
   const PERIOD_TEXT = { FULL:'เต็มวัน', MORNING:'ครึ่งวันเช้า', AFTERNOON:'ครึ่งวันบ่าย', HOURLY:'ตามช่วงเวลา' };
   const WORK_HOURS_PER_DAY = 8;
 
@@ -674,8 +669,11 @@ var LIFF_ID = '2010757225-fGRiop3v';
     } catch (e) {}
   }
 
+  let lastSyncAt = 0;
+
   async function loadHome() {
     homeData = await api('getHomeData');
+    lastSyncAt = Date.now();
     $('loading').classList.add('hidden');
 
     if (!homeData.registered) {
@@ -737,18 +735,43 @@ var LIFF_ID = '2010757225-fGRiop3v';
     $('userDept').textContent = [homeData.profile.department, homeData.profile.employeeCode]
       .filter(Boolean).join(' · ');
     $('avatar').src = homeData.profile.pictureUrl || '';
+    $('avatar').classList.toggle('hidden', !homeData.profile.pictureUrl);
 
     renderBalances();
     renderTypeCards();
 
     const showApprovals = homeData.isApprover || homeData.isHr;
     $('approvalsTabBtn').classList.toggle('hidden', !showApprovals);
-    if (showApprovals) refreshApprovals();
+    if (showApprovals) renderApprovals();
 
-    refreshHistory();
+    renderHistory();
   }
 
-  function emojiOf(key) { return TYPE_EMOJI[key] || '📋'; }
+  // ดึงข้อมูลล่าสุดทั้งหมดในคำสั่งเดียวแบบเบื้องหลัง แล้ววาดหน้าจอใหม่
+  // ข้ามถ้าเพิ่งซิงค์ไปไม่ถึง 30 วินาที (เว้นแต่สั่ง force)
+  let syncing = null;
+  function syncHome(force) {
+    if (!accessToken) return Promise.resolve();
+    if (syncing) return syncing;
+    if (!force && Date.now() - lastSyncAt < 30000) return Promise.resolve();
+    syncing = api('getHomeData')
+      .then(data => {
+        lastSyncAt = Date.now();
+        if (!data.registered) return;
+        homeData = data;
+        saveHomeCache();
+        renderApp();
+      })
+      .catch(err => showToast('ซิงค์ข้อมูลไม่สำเร็จ: ' + (err.message || err), true))
+      .finally(() => { syncing = null; });
+    return syncing;
+  }
+
+  function requireConnection() {
+    if (accessToken) return true;
+    showToast('กำลังเชื่อมต่อ LINE รอสักครู่แล้วลองใหม่', true);
+    return false;
+  }
 
   function renderBalances() {
     $('balances').innerHTML = homeData.balances.map(b => {
@@ -757,10 +780,9 @@ var LIFF_ID = '2010757225-fGRiop3v';
       const pct = Math.max(0, Math.min(100, (b.remaining / max) * 100));
       return `
       <div class="balance-card">
-        <div class="bc-emoji">${emojiOf(b.key)}</div>
-        <div class="bc-value" style="color:${b.color}">${b.remaining}</div>
         <div class="bc-name">${escapeHtml(b.name)}</div>
-        <div class="bc-bar"><div style="width:${pct}%;background:${b.color}"></div></div>
+        <div class="bc-value">${b.remaining}<small>วัน</small></div>
+        <div class="bc-bar"><div style="width:${pct}%"></div></div>
       </div>`;
     }).join('');
   }
@@ -773,9 +795,8 @@ var LIFF_ID = '2010757225-fGRiop3v';
       const remain = bal ? bal.remaining : '';
       return `
       <button type="button" class="type-card" data-key="${escapeHtml(t.key)}">
-        <span class="t-emoji">${emojiOf(t.key)}</span>
         <span class="t-name">${escapeHtml(t.name)}</span>
-        <div class="t-remain">เหลือ ${remain} วัน</div>
+        <div class="t-remain">คงเหลือ ${remain} วัน</div>
       </button>`;
     }).join('');
 
@@ -952,11 +973,12 @@ var LIFF_ID = '2010757225-fGRiop3v';
         if (hours > WORK_HOURS_PER_DAY) { showToast('ช่วงเวลาเกิน ' + WORK_HOURS_PER_DAY + ' ชม. กรุณาเลือกลาเต็มวัน', true); return; }
       }
 
+      if (!requireConnection()) return;
       const btn = $('submitBtn');
       btn.disabled = true;
       btn.textContent = 'กำลังส่ง...';
       try {
-        await api('submitLeaveRequest', {
+        const result = await api('submitLeaveRequest', {
           payload: {
             leaveType: selectedType,
             startDate: rangeStart,
@@ -967,19 +989,26 @@ var LIFF_ID = '2010757225-fGRiop3v';
             reason: $('reason').value.trim()
           }
         });
-        showToast('ส่งคำขอลาเรียบร้อยแล้ว 🦙');
+        showToast('ส่งคำขอลาเรียบร้อยแล้ว');
         rangeStart = rangeEnd = null;
         selectedType = null;
         document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
         $('reason').value = '';
         $('daysPreview').classList.add('hidden');
         renderCalendar();
-        refreshHistory();
+        // เซิร์ฟเวอร์ส่งใบลาใบใหม่กลับมาแล้ว — ต่อเข้าประวัติได้เลย ไม่ต้องโหลดใหม่
+        if (result && result.request && Array.isArray(homeData.myLeaves)) {
+          homeData.myLeaves.unshift(result.request);
+          saveHomeCache();
+          renderHistory();
+        } else {
+          syncHome(true);
+        }
       } catch (err) {
         showToast(err.message || String(err), true);
       } finally {
         btn.disabled = false;
-        btn.textContent = '🦙 ส่งคำขอลา';
+        btn.textContent = 'ส่งคำขอลา';
       }
     });
   }
@@ -993,8 +1022,8 @@ var LIFF_ID = '2010757225-fGRiop3v';
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
         btn.classList.add('active');
         $('view-' + btn.dataset.view).classList.remove('hidden');
-        if (btn.dataset.view === 'history') refreshHistory();
-        if (btn.dataset.view === 'approvals') refreshApprovals();
+        // ข้อมูลอยู่ในเครื่องแล้ว แสดงได้ทันที แล้วค่อยซิงค์เบื้องหลังถ้าข้อมูลเก่าเกิน 30 วินาที
+        if (btn.dataset.view === 'history' || btn.dataset.view === 'approvals') syncHome(false);
       });
     });
   }
@@ -1010,21 +1039,42 @@ var LIFF_ID = '2010757225-fGRiop3v';
     return s === 'PENDING' || s === 'PENDING_MANAGER' || s === 'PENDING_HR';
   }
 
-  async function refreshHistory() {
+  // ประวัติและรายการรออนุมัติมากับ getHomeData แล้ว (และถูกเก็บใน cache ของเครื่องด้วย)
+  // ถ้ายังไม่มี แปลว่าเป็น backend รุ่นเก่าหรือ cache รุ่นเก่า → ดึงแยกแบบเดิมแทน
+  let legacyLoading = false;
+  function loadListsLegacy() {
+    if (legacyLoading || !accessToken) return;
+    legacyLoading = true;
+    const showApprovals = homeData.isApprover || homeData.isHr;
+    Promise.all([
+      api('getMyLeaves'),
+      showApprovals ? api('getPendingApprovals') : Promise.resolve([])
+    ])
+      .then(([mine, pending]) => {
+        homeData.myLeaves = mine;
+        homeData.pendingApprovals = pending;
+        saveHomeCache();
+        renderHistory();
+        if (showApprovals) renderApprovals();
+      })
+      .catch(err => showToast(err.message || String(err), true))
+      .finally(() => { legacyLoading = false; });
+  }
+
+  function renderHistory() {
     const list = $('historyList');
-    list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
-    if (!accessToken) return; // โชว์จาก cache อยู่ — รอซิงค์เสร็จค่อยโหลดรายการจริง
-    try {
-      const items = await api('getMyLeaves');
-      $('historyEmpty').classList.toggle('hidden', items.length > 0);
-      list.innerHTML = items.map(renderHistoryCard).join('');
-      list.querySelectorAll('.cancel-btn').forEach(btn => {
-        btn.addEventListener('click', () => cancelRequest(btn.dataset.id));
-      });
-    } catch (err) {
-      list.innerHTML = '';
-      showToast(err.message || String(err), true);
+    const items = homeData.myLeaves;
+    if (!Array.isArray(items)) {
+      $('historyEmpty').classList.add('hidden');
+      list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+      loadListsLegacy();
+      return;
     }
+    $('historyEmpty').classList.toggle('hidden', items.length > 0);
+    list.innerHTML = items.map(renderHistoryCard).join('');
+    list.querySelectorAll('.cancel-btn').forEach(btn => {
+      btn.addEventListener('click', () => cancelRequest(btn.dataset.id));
+    });
   }
 
   function renderHistoryCard(r) {
@@ -1033,45 +1083,54 @@ var LIFF_ID = '2010757225-fGRiop3v';
       <div class="req-card">
         <div class="req-top">
           <div>
-            <div class="req-type">${emojiOf(r.leaveType)} ${escapeHtml(typeName)}</div>
+            <div class="req-type">${escapeHtml(typeName)}</div>
             <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r)}</div>
           </div>
           <span class="badge-status ${r.status}">${statusLabel(r.status)}</span>
         </div>
         ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
         ${r.approverComment ? `<div class="req-reason muted">หมายเหตุผู้อนุมัติ: ${escapeHtml(r.approverComment)}</div>` : ''}
-        ${isPendingStatus(r.status) ? `<button class="btn btn-cancel-outline cancel-btn" data-id="${r.requestId}">🚫 ยกเลิกใบลา</button>` : ''}
+        ${isPendingStatus(r.status) ? `<button class="btn btn-cancel-outline cancel-btn" data-id="${r.requestId}">ยกเลิกใบลา</button>` : ''}
       </div>
     `;
   }
 
+  // เปลี่ยนสถานะบนหน้าจอทันที แล้วค่อยส่งไปเซิร์ฟเวอร์ — ถ้าไม่สำเร็จจะคืนสถานะเดิมให้
   async function cancelRequest(requestId) {
+    if (!requireConnection()) return;
     if (!confirm('ยืนยันการยกเลิกใบลานี้?')) return;
+    const item = (homeData.myLeaves || []).find(r => r.requestId === requestId);
+    if (!item) return;
+    const previousStatus = item.status;
+    item.status = 'CANCELLED';
+    saveHomeCache();
+    renderHistory();
+    showToast('ยกเลิกใบลาเรียบร้อยแล้ว');
     try {
       await api('cancelLeaveRequest', { requestId });
-      showToast('ยกเลิกใบลาเรียบร้อยแล้ว');
-      refreshHistory();
     } catch (err) {
-      showToast(err.message || String(err), true);
+      item.status = previousStatus;
+      saveHomeCache();
+      renderHistory();
+      showToast('ยกเลิกไม่สำเร็จ: ' + (err.message || String(err)), true);
     }
   }
 
   // ---------- Approvals ----------
 
-  async function refreshApprovals() {
+  function renderApprovals() {
     const list = $('approvalsList');
-    list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
-    if (!accessToken) return; // โชว์จาก cache อยู่ — รอซิงค์เสร็จค่อยโหลดรายการจริง
-    try {
-      const items = await api('getPendingApprovals');
-      $('approvalsEmpty').classList.toggle('hidden', items.length > 0);
-      updateApprovalsBadge(items.length);
-      list.innerHTML = items.map(renderApprovalCard).join('');
-      items.forEach(bindApprovalButtons);
-    } catch (err) {
-      list.innerHTML = '';
-      showToast(err.message || String(err), true);
+    const items = homeData.pendingApprovals;
+    if (!Array.isArray(items)) {
+      $('approvalsEmpty').classList.add('hidden');
+      list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+      loadListsLegacy();
+      return;
     }
+    $('approvalsEmpty').classList.toggle('hidden', items.length > 0);
+    updateApprovalsBadge(items.length);
+    list.innerHTML = items.map(renderApprovalCard).join('');
+    items.forEach(bindApprovalButtons);
   }
 
   function updateApprovalsBadge(count) {
@@ -1083,22 +1142,22 @@ var LIFF_ID = '2010757225-fGRiop3v';
   function renderApprovalCard(r) {
     const typeName = typeNameOf(r.leaveType);
     const stageChip = r.stage === 'HR'
-      ? '<span class="stage-chip hr">ขั้นที่ 2/2 — HR</span>'
-      : '<span class="stage-chip">ขั้นที่ 1/2 — ผจก.ฝ่าย</span>';
+      ? '<span class="stage-chip hr">ขั้นที่ 2 จาก 2 · ฝ่ายบุคคล</span>'
+      : '<span class="stage-chip">ขั้นที่ 1 จาก 2 · ผู้จัดการฝ่าย</span>';
     return `
       <div class="req-card" data-id="${r.requestId}">
         ${stageChip}
         <div class="req-top">
           <div>
-            <div class="req-type">${emojiOf(r.leaveType)} ${escapeHtml(typeName)}</div>
+            <div class="req-type">${escapeHtml(typeName)}</div>
             <div class="req-name">${escapeHtml(r.name)} · ${escapeHtml(r.department)}</div>
             <div class="req-dates">${r.startDate} - ${r.endDate} · ${r.days} วัน · ${periodText(r)}</div>
           </div>
         </div>
         ${r.reason ? `<div class="req-reason">${escapeHtml(r.reason)}</div>` : ''}
         <div class="btn-row">
-          <button class="btn btn-approve approve-btn">✅ อนุมัติ</button>
-          <button class="btn btn-reject-outline reject-btn">❌ ไม่อนุมัติ</button>
+          <button class="btn btn-approve approve-btn">อนุมัติ</button>
+          <button class="btn btn-reject-outline reject-btn">ไม่อนุมัติ</button>
         </div>
       </div>
     `;
@@ -1111,15 +1170,28 @@ var LIFF_ID = '2010757225-fGRiop3v';
     card.querySelector('.reject-btn').addEventListener('click', () => decide(r.requestId, 'REJECTED'));
   }
 
+  // เอาการ์ดออกจากหน้าจอทันที แล้วค่อยส่งไปเซิร์ฟเวอร์ — ถ้าไม่สำเร็จจะใส่การ์ดกลับที่เดิม
   async function decide(requestId, decision) {
+    if (!requireConnection()) return;
     const label = decision === 'APPROVED' ? 'อนุมัติ' : 'ไม่อนุมัติ';
     if (!confirm('ยืนยันการ' + label + 'คำขอลานี้?')) return;
+    const list = homeData.pendingApprovals || [];
+    const index = list.findIndex(r => r.requestId === requestId);
+    if (index === -1) return;
+    const [item] = list.splice(index, 1);
+    saveHomeCache();
+    renderApprovals();
+    showToast(label + 'เรียบร้อยแล้ว');
     try {
       await api('decideLeaveRequest', { requestId, decision });
-      showToast(label + 'เรียบร้อยแล้ว');
-      refreshApprovals();
     } catch (err) {
-      showToast(err.message || String(err), true);
+      const current = homeData.pendingApprovals || [];
+      if (!current.some(r => r.requestId === requestId)) {
+        current.splice(Math.min(index, current.length), 0, item);
+      }
+      saveHomeCache();
+      renderApprovals();
+      showToast(label + 'ไม่สำเร็จ: ' + (err.message || String(err)), true);
     }
   }
 
@@ -1132,9 +1204,9 @@ var LIFF_ID = '2010757225-fGRiop3v';
 
   function statusLabel(status) {
     return {
-      PENDING: 'รอ ผจก.ฝ่าย',
-      PENDING_MANAGER: 'รอ ผจก.ฝ่าย',
-      PENDING_HR: 'รอ HR',
+      PENDING: 'รอผู้จัดการฝ่าย',
+      PENDING_MANAGER: 'รอผู้จัดการฝ่าย',
+      PENDING_HR: 'รอฝ่ายบุคคล',
       APPROVED: 'อนุมัติแล้ว',
       REJECTED: 'ไม่อนุมัติ',
       CANCELLED: 'ยกเลิกแล้ว'

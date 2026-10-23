@@ -75,6 +75,11 @@
     }
     .user-name { font-size: 18px; font-weight: 600; margin-top: 2px; }
     .user-dept { font-size: 13px; color: var(--muted); }
+    .header-link {
+      display: inline-block; margin-top: 6px;
+      font-size: 13px; font-weight: 500; color: var(--navy);
+      text-decoration: none;
+    }
     .avatar {
       width: 44px; height: 44px; flex-shrink: 0;
       border-radius: 50%;
@@ -425,6 +430,7 @@
         <div class="header-label">ระบบการลาออนไลน์</div>
         <div id="userName" class="user-name">-</div>
         <div id="userDept" class="user-dept">-</div>
+        <a id="adminLink" class="header-link hidden" href="admin.html">เปิดหน้าผู้ดูแล ›</a>
       </div>
       <img id="avatar" class="avatar" src="" alt="">
     </header>
@@ -736,6 +742,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
       .filter(Boolean).join(' · ');
     $('avatar').src = homeData.profile.pictureUrl || '';
     $('avatar').classList.toggle('hidden', !homeData.profile.pictureUrl);
+    $('adminLink').classList.toggle('hidden', !homeData.isHr);
 
     renderBalances();
     renderTypeCards();

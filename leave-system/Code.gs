@@ -49,6 +49,7 @@ function routeApi_(req) {
     case 'getPendingApprovals': return getPendingApprovals(t);
     case 'decideLeaveRequest': return decideLeaveRequest(t, req.requestId, req.decision, req.comment || '');
     case 'cancelLeaveRequest': return cancelLeaveRequest(t, req.requestId);
+    case 'getAdminData': return getAdminData(t, !!req.includeArchive);
     default: throw new Error('ไม่รู้จักคำสั่ง: ' + req.action);
   }
 }
@@ -202,16 +203,22 @@ function getHomeData(accessToken) {
     key: t.key, name: t.name, color: t.color, remaining: Number(employee[t.balanceField]) || 0
   }));
 
+  const isApprover = isApprover_(profile.userId);
+  const isHr = isHr_(profile.userId);
+
+  // ส่งประวัติการลาและรายการรออนุมัติมาในคำสั่งเดียว หน้าจอจะได้ไม่ต้องเรียกเพิ่มอีก 2 รอบ
   return {
     registered: true,
     profile: {
       displayName: employee.Name, pictureUrl: employee.PictureUrl,
       department: employee.Department, employeeCode: employee.EmployeeCode || ''
     },
-    isApprover: isApprover_(profile.userId),
-    isHr: isHr_(profile.userId),
+    isApprover,
+    isHr,
     balances,
-    leaveTypes
+    leaveTypes,
+    myLeaves: getMyLeavesSerialized_(profile.userId),
+    pendingApprovals: collectPendingApprovals_(profile.userId, isApprover, isHr)
   };
 }
 
@@ -251,25 +258,38 @@ function submitLeaveRequest(accessToken, payload) {
     linePush_(approver.lineUserId, [buildApprovalRequestFlex_(requestForFlex, 'MANAGER')]);
   }
 
-  return { ok: true, requestId: request.requestId };
+  // ส่งใบลาที่เพิ่งสร้างกลับไปด้วย หน้าจอเอาไปต่อท้ายประวัติได้เลยโดยไม่ต้องโหลดใหม่
+  const item = serializeRequest_({
+    RequestId: request.requestId, Name: request.name, Department: request.department,
+    LeaveType: request.leaveType, StartDate: request.startDate, EndDate: request.endDate,
+    Days: request.days, Reason: request.reason, Status: request.status, ApproverComment: '',
+    SubmittedAt: request.submittedAt, TimePeriod: request.timePeriod,
+    TimeStart: request.timeStart, TimeEnd: request.timeEnd
+  });
+  return { ok: true, requestId: request.requestId, request: item };
 }
 
+// หน้าจอรุ่นใหม่ได้ข้อมูลนี้จาก getHomeData แล้ว — คงไว้ให้หน้าจอรุ่นเก่ายังใช้ได้
 function getMyLeaves(accessToken) {
   const profile = lineProfileFromAccessToken_(accessToken);
-  return getLeaveRequestsForEmployee_(profile.userId).map(serializeRequest_);
+  return getMyLeavesSerialized_(profile.userId);
+}
+
+function getPendingApprovals(accessToken) {
+  const profile = lineProfileFromAccessToken_(accessToken);
+  return collectPendingApprovals_(profile.userId, isApprover_(profile.userId), isHr_(profile.userId));
 }
 
 // รวมรายการรออนุมัติของคนคนนี้ทั้ง 2 บทบาท (เป็นได้ทั้ง ผจก. และ HR พร้อมกัน)
-function getPendingApprovals(accessToken) {
-  const profile = lineProfileFromAccessToken_(accessToken);
+function collectPendingApprovals_(lineUserId, isApprover, isHr) {
   const out = [];
-  if (isApprover_(profile.userId)) {
-    getPendingManagerApprovals_(profile.userId).forEach(r =>
-      out.push(Object.assign(serializeRequest_(r), { stage: 'MANAGER' })));
+  if (isApprover) {
+    getPendingManagerApprovals_(lineUserId).forEach(r =>
+      out.push(Object.assign({}, r, { stage: 'MANAGER' })));
   }
-  if (isHr_(profile.userId)) {
+  if (isHr) {
     getPendingHrApprovals_().forEach(r =>
-      out.push(Object.assign(serializeRequest_(r), { stage: 'HR' })));
+      out.push(Object.assign({}, r, { stage: 'HR' })));
   }
   return out;
 }
@@ -306,6 +326,66 @@ function cancelLeaveRequest(accessToken, requestId) {
   }
 
   return { ok: true };
+}
+
+// ================= ADMIN (หน้าผู้ดูแล admin.html — เฉพาะคนในชีต HR) =================
+
+/**
+ * ข้อมูลทั้งหมดสำหรับหน้าผู้ดูแล: ใบลาทุกใบ + พนักงานทุกคนพร้อมยอดคงเหลือ
+ * ตรวจสิทธิ์ที่เซิร์ฟเวอร์เสมอ — คนที่ไม่อยู่ในชีต HR จะไม่ได้ข้อมูลแม้เปิดหน้าได้
+ * includeArchive = รวมใบลาของปีก่อนๆ จากชีต LeaveRequestsArchive ด้วย
+ */
+function getAdminData(accessToken, includeArchive) {
+  const profile = lineProfileFromAccessToken_(accessToken);
+  if (!isHr_(profile.userId)) throw new Error('หน้านี้สำหรับฝ่ายบุคคล (HR) เท่านั้น');
+
+  const leaveTypes = getLeaveTypes_();
+  const employeeRows = sheetToObjects_(getSheet_(SHEET_EMPLOYEES)).filter(e => e.LineUserId);
+  const codeByUser = {};
+  employeeRows.forEach(e => { codeByUser[e.LineUserId] = e.EmployeeCode || ''; });
+
+  let rows = allRequestRows_();
+  if (includeArchive) {
+    const archive = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_LEAVE_ARCHIVE);
+    if (archive) rows = rows.concat(sheetToObjects_(archive));
+  }
+
+  const requests = rows.filter(r => r.RequestId).map(r => Object.assign(serializeRequest_(r), {
+    employeeCode: codeByUser[r.LineUserId] || '',
+    startIso: isoDate_(r.StartDate),
+    endIso: isoDate_(r.EndDate || r.StartDate),
+    submittedIso: isoDate_(r.SubmittedAt, 'yyyy-MM-dd HH:mm')
+  }));
+
+  const employees = employeeRows.map(e => {
+    const balances = {};
+    leaveTypes.forEach(t => { balances[t.key] = Number(e[t.balanceField]) || 0; });
+    return { name: e.Name, department: e.Department, employeeCode: e.EmployeeCode || '', balances };
+  });
+
+  // แผนกจากชีต Departments + แผนกที่พนักงานลงทะเบียนไว้จริง (ข้ามแถวตัวอย่าง)
+  const departments = getDepartments_().map(d => d.Department)
+    .concat(employees.map(e => e.department))
+    .filter((d, i, all) => d && String(d).indexOf('ตัวอย่าง') !== 0 && all.indexOf(d) === i)
+    .sort();
+
+  const me = employeeRows.find(e => e.LineUserId === profile.userId);
+  return {
+    profile: { displayName: me ? me.Name : profile.displayName },
+    leaveTypes: leaveTypes.map(t => ({ key: t.key, name: t.name, defaultDays: Number(t.defaultDays) || 0 })),
+    departments,
+    employees,
+    requests,
+    includeArchive: !!includeArchive,
+    generatedAt: Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm')
+  };
+}
+
+function isoDate_(d, pattern) {
+  if (!d) return '';
+  const date = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(date.getTime())) return '';
+  return Utilities.formatDate(date, 'Asia/Bangkok', pattern || 'yyyy-MM-dd');
 }
 
 function serializeRequest_(r) {

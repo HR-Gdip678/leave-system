@@ -7,6 +7,7 @@ const SHEET_DEPARTMENTS = 'Departments';
 const SHEET_LEAVE_REQUESTS = 'LeaveRequests';
 const SHEET_LEAVE_TYPES = 'LeaveTypes';
 const SHEET_HR = 'HR';
+const SHEET_LEAVE_ARCHIVE = 'LeaveRequestsArchive'; // ใบลาที่จบแล้วของปีก่อนๆ (ย้ายอัตโนมัติ)
 
 // คอลัมน์ใหม่ต้องต่อท้ายเสมอ เพื่อให้ migrate ชีตเดิมได้โดยข้อมูลไม่เลื่อน
 const EMPLOYEES_HEADERS = [

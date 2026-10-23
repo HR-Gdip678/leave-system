@@ -53,6 +53,7 @@ function setupSpreadsheet() {
   }
 
   ensureKeepWarmTrigger_();
+  ensureArchiveTrigger_();
   clearSheetCache_();
   SpreadsheetApp.flush();
   // getUi() is only available when run from the Sheet menu; running from the
@@ -154,10 +155,62 @@ function ensureKeepWarmTrigger_() {
   }
 }
 
+// ย้ายใบลาเก่าไปชีต Archive ทุกวันที่ 1 ของเดือน ตอนตี 2 (ช่วงที่ไม่มีใครใช้งาน)
+function ensureArchiveTrigger_() {
+  const exists = ScriptApp.getProjectTriggers()
+    .some(t => t.getHandlerFunction() === 'archiveOldRequests');
+  if (!exists) {
+    ScriptApp.newTrigger('archiveOldRequests').timeBased().onMonthDay(1).atHour(2).create();
+  }
+}
+
+function archiveOldRequestsFromMenu() {
+  const count = archiveOldRequests();
+  SpreadsheetApp.getUi().alert('ย้ายใบลาเก่าไปชีต ' + SHEET_LEAVE_ARCHIVE + ' แล้ว ' + count + ' รายการ');
+}
+
 /** Optional: adds a menu so non-developers can (re-)run setup from the Sheet UI. */
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('ระบบลาออนไลน์')
     .addItem('ตั้งค่าระบบ (Setup)', 'setupSpreadsheet')
+    .addItem('ย้ายใบลาของปีก่อนไปชีต Archive', 'archiveOldRequestsFromMenu')
     .addToUi();
+}
+
+/**
+ * HR แก้ชีตด้วยมือ (เช่น ปรับยอดวันลา เปลี่ยนผู้อนุมัติ) → ล้าง cache ที่เกี่ยวข้องทันที
+ * แอปจะเห็นค่าใหม่ในการเปิดครั้งถัดไป ไม่ต้องรอ cache หมดอายุ
+ * (simple trigger — ทำงานเฉพาะการแก้ด้วยมือ การเขียนจากสคริปต์ล้าง cache เองอยู่แล้ว)
+ */
+function onEdit(e) {
+  try {
+    const sheet = e.range.getSheet();
+    const name = sheet.getName();
+
+    if (name === SHEET_LEAVE_TYPES || name === SHEET_DEPARTMENTS || name === SHEET_HR) {
+      clearSheetCache_();
+      return;
+    }
+    if (name !== SHEET_EMPLOYEES && name !== SHEET_LEAVE_REQUESTS) return;
+
+    const firstRow = Math.max(2, e.range.getRow());
+    const lastRow = e.range.getLastRow();
+    const userIds = [];
+    if (lastRow >= firstRow) {
+      const col = headersOf_(sheet).indexOf('LineUserId') + 1;
+      if (col > 0) {
+        sheet.getRange(firstRow, col, lastRow - firstRow + 1, 1).getValues()
+          .forEach(r => { if (r[0]) userIds.push(String(r[0])); });
+      }
+    }
+
+    if (name === SHEET_EMPLOYEES) {
+      userIds.forEach(clearEmployeeCache_);
+    } else {
+      clearRequestCaches_(userIds);
+    }
+  } catch (err) {
+    console.warn('onEdit cache clear failed: ' + err.message);
+  }
 }

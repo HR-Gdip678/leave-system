@@ -63,29 +63,33 @@
     .loading-screen p { color: var(--muted); font-size: 14px; margin: 0; }
 
     /* ---------- Header ---------- */
+    /* แถบหัวสีน้ำเงินเข้ม — ให้หน้าแอปมีน้ำหนัก แต่ยังดูทางการ */
     .header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--line);
-      padding: 18px 20px 16px;
+      background: var(--navy);
+      color: #fff;
+      padding: 20px 20px 18px;
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
     .header-label {
-      font-size: 12px; font-weight: 500; color: var(--muted);
+      font-size: 12px; font-weight: 500; color: #AEB9CF;
       letter-spacing: 0.02em;
     }
     .user-name { font-size: 18px; font-weight: 600; margin-top: 2px; }
-    .user-dept { font-size: 13px; color: var(--muted); }
+    .user-dept { font-size: 13px; color: #C9D2E3; }
     .header-link {
-      display: inline-block; margin-top: 6px;
-      font-size: 13px; font-weight: 500; color: var(--navy);
+      display: inline-block; margin-top: 8px;
+      font-size: 12px; font-weight: 500; color: #fff;
       text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 6px;
+      padding: 2px 8px;
     }
     .avatar {
-      width: 44px; height: 44px; flex-shrink: 0;
+      width: 48px; height: 48px; flex-shrink: 0;
       border-radius: 50%;
       object-fit: cover;
-      background: var(--accent-soft);
-      border: 1px solid var(--line);
+      background: var(--navy-hover);
+      border: 2px solid rgba(255,255,255,0.85);
     }
 
     .app { padding-bottom: 88px; }
@@ -111,14 +115,19 @@
       overflow: hidden;
     }
     .balance-card { background: var(--surface); padding: 12px 12px 14px; }
-    .bc-name { font-size: 12px; color: var(--muted); }
+    .bc-name { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .bc-name::before {
+      content: ''; width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+      background: var(--c, var(--navy));
+    }
     .bc-value {
       font-size: 22px; font-weight: 600; margin-top: 2px;
       font-variant-numeric: tabular-nums;
     }
     .bc-value small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 3px; }
     .bc-bar { height: 2px; background: var(--line); margin-top: 8px; }
-    .bc-bar > div { height: 100%; background: var(--navy); }
+    .bc-bar { height: 3px; border-radius: 2px; overflow: hidden; }
+    .bc-bar > div { height: 100%; background: var(--c, var(--navy)); border-radius: 2px; }
 
     /* ---------- Form ---------- */
     .card {
@@ -133,8 +142,12 @@
       font-size: 15px; font-weight: 600;
       display: flex; align-items: baseline; gap: 8px;
     }
+    .card-title { align-items: center; }
     .card-title .step {
-      font-size: 12px; font-weight: 500; color: var(--subtle);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--navy); color: #fff;
+      font-size: 11px; font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
     .req { color: var(--red); font-weight: 500; }
@@ -144,29 +157,40 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
+    /* แต่ละประเภทลามีสีประจำ (--c = สีหลัก, --c-soft = สีพื้นอ่อน) กำหนดจาก TYPE_COLOR ใน JS */
     .type-card {
       position: relative;
+      display: flex; align-items: center; gap: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--surface);
-      padding: 11px 12px;
+      padding: 10px;
       text-align: left;
       cursor: pointer;
       color: var(--ink);
       transition: border-color .12s, background .12s;
     }
+    .type-card .t-icon {
+      width: 34px; height: 34px; flex-shrink: 0;
+      border-radius: 8px;
+      background: var(--c-soft);
+      color: var(--c);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .type-card .t-icon svg { width: 18px; height: 18px; }
     .type-card .t-name { display: block; font-size: 14px; font-weight: 500; }
     .type-card .t-remain { font-size: 12px; color: var(--muted); margin-top: 1px; }
     .type-card.selected {
-      border-color: var(--navy);
-      background: var(--accent-soft);
-      box-shadow: inset 0 0 0 1px var(--navy);
+      border-color: var(--c);
+      background: var(--c-soft);
+      box-shadow: inset 0 0 0 1px var(--c);
     }
+    .type-card.selected .t-icon { background: var(--c); color: #fff; }
     .type-card.selected::after {
       content: '';
-      position: absolute; top: 12px; right: 12px;
+      position: absolute; top: 10px; right: 10px;
       width: 8px; height: 8px; border-radius: 50%;
-      background: var(--navy);
+      background: var(--c);
     }
 
     .cal-head {
@@ -248,9 +272,11 @@
 
     .days-preview {
       margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--line);
-      font-size: 14px; font-weight: 500;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      border-left: 3px solid var(--navy);
+      font-size: 14px; font-weight: 600;
       color: var(--navy);
     }
 
@@ -571,6 +597,36 @@ var LIFF_ID = '2010757225-fGRiop3v';
   const PERIOD_TEXT = { FULL:'เต็มวัน', MORNING:'ครึ่งวันเช้า', AFTERNOON:'ครึ่งวันบ่าย', HOURLY:'ตามช่วงเวลา' };
   const WORK_HOURS_PER_DAY = 8;
 
+  // สีประจำประเภทลา (โทนกลางๆ ให้ดูทางการ) — ประเภทที่ไม่อยู่ในนี้ใช้สีจากชีต LeaveTypes
+  const TYPE_COLOR = {
+    ANNUAL: '#0F766E', SICK: '#BE123C', PERSONAL: '#B45309',
+    MATERNITY: '#7E22CE', ORDINATION: '#C2410C', SPECIAL: '#1D4ED8'
+  };
+  const ICON = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  const TYPE_ICON = {
+    ANNUAL: ICON('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+    SICK: ICON('<path d="M19.5 12.6 12 20l-7.5-7.4A5 5 0 1 1 12 6a5 5 0 1 1 7.5 6.6z"/><path d="M8 12h2l1-2 2 4 1-2h2"/>'),
+    PERSONAL: ICON('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>'),
+    MATERNITY: ICON('<circle cx="12" cy="8" r="4"/><path d="M6 21v-1a6 6 0 0 1 12 0v1"/><path d="M10.5 8h.01M13.5 8h.01"/>'),
+    ORDINATION: ICON('<path d="M12 3c-2 3-2 6 0 9 2-3 2-6 0-9z"/><path d="M4 11c1 4 4 6 8 6s7-2 8-6c-3 0-6 1-8 3-2-2-5-3-8-3z"/><path d="M5 21h14"/>'),
+    SPECIAL: ICON('<path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>')
+  };
+  const DEFAULT_ICON = ICON('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>');
+
+  function colorOf(key, fallback) {
+    const c = TYPE_COLOR[key] || fallback || '#1B2B48';
+    return /^#[0-9a-f]{6}$/i.test(c) ? c : '#1B2B48';
+  }
+  // สีพื้นอ่อนจากสีหลัก (ไม่ใช้ color-mix เพราะ webview รุ่นเก่าใน LINE อาจไม่รองรับ)
+  function softOf(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',0.10)';
+  }
+  function typeStyle(key, fallback) {
+    const c = colorOf(key, fallback);
+    return `--c:${c};--c-soft:${softOf(c)}`;
+  }
+
   const $ = (id) => document.getElementById(id);
 
   function showToast(message, isError) {
@@ -786,7 +842,7 @@ var LIFF_ID = '2010757225-fGRiop3v';
       const max = t && Number(t.defaultDays) ? Number(t.defaultDays) : b.remaining || 1;
       const pct = Math.max(0, Math.min(100, (b.remaining / max) * 100));
       return `
-      <div class="balance-card">
+      <div class="balance-card" style="${typeStyle(b.key, b.color)}">
         <div class="bc-name">${escapeHtml(b.name)}</div>
         <div class="bc-value">${b.remaining}<small>วัน</small></div>
         <div class="bc-bar"><div style="width:${pct}%"></div></div>
@@ -801,9 +857,12 @@ var LIFF_ID = '2010757225-fGRiop3v';
       const bal = homeData.balances.find(b => b.key === t.key);
       const remain = bal ? bal.remaining : '';
       return `
-      <button type="button" class="type-card" data-key="${escapeHtml(t.key)}">
-        <span class="t-name">${escapeHtml(t.name)}</span>
-        <div class="t-remain">คงเหลือ ${remain} วัน</div>
+      <button type="button" class="type-card" data-key="${escapeHtml(t.key)}" style="${typeStyle(t.key, t.color)}">
+        <span class="t-icon">${TYPE_ICON[t.key] || DEFAULT_ICON}</span>
+        <span>
+          <span class="t-name">${escapeHtml(t.name)}</span>
+          <div class="t-remain">คงเหลือ ${remain} วัน</div>
+        </span>
       </button>`;
     }).join('');
 
